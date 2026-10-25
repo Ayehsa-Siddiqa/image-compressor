@@ -90,7 +90,7 @@ async function encodeWebp(image: ImageData, quality: number): Promise<ArrayBuffe
 
 async function encodeAvif(image: ImageData, quality: number): Promise<ArrayBuffer> {
   try {
-    const { default: encode } = await import("@jsquash/avif/encode.js");
+    const { encodeAvif: encode } = await import("./single-thread");
     const lossless = quality >= 100;
     const result = await encode(image, {
       // libavif's scale is stricter than JPG's: our 80 maps to 60, which looks visually lossless for most photos.
@@ -112,7 +112,7 @@ async function encodePng(image: ImageData, quality: number): Promise<ArrayBuffer
   const colors = quality >= 100 ? 0 : pngPaletteSize(quality);
   const png = UPNG.encode([image.data.buffer as ArrayBuffer], image.width, image.height, colors);
   try {
-    const { default: optimise } = await import("@jsquash/oxipng/optimise.js");
+    const { optimisePng: optimise } = await import("./single-thread");
     // Lossless pass: finds the best PNG filters and deflate settings without changing a pixel.
     return await optimise(png, { level: megapixels(image) > 8 ? 1 : 2, interlace: false, optimiseAlpha: true });
   } catch {

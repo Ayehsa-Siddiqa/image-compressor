@@ -20,9 +20,3 @@ declare module "@jsquash/jpeg/encode.js" {
 declare module "@jsquash/webp/encode.js" {
   export { default } from "@jsquash/webp/encode";
 }
-declare module "@jsquash/avif/encode.js" {
-  export { default } from "@jsquash/avif/encode";
-}
-declare module "@jsquash/oxipng/optimise.js" {
-  export { default } from "@jsquash/oxipng/optimise";
-}
