@@ -1,0 +1,280 @@
+@import "tailwindcss";
+
+/* Dark mode follows a `dark` class on <html> (set from the saved choice or the OS setting). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens sampled from the Figma file (Product / node 1:2). Colours are variables so dark mode can swap them. */
+@theme inline {
+  --color-primary: #2563eb;
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  /* Blue used for text, links and icons (lighter in dark mode so it stays readable). */
+  --color-accent: var(--accent);
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-header-line: var(--header-line);
+  --color-surface: var(--surface);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-danger: #ea4c46;
+  --color-star: #ffd900;
+
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-display: var(--font-kumbh-sans), Arial, Helvetica, sans-serif;
+
+  --shadow-card: var(--card-shadow);
+  --shadow-card-active: 0 0 0 1px rgb(37 99 235 / 0.5), 0 8px 24px rgb(37 99 235 / 0.12);
+}
+
+:root {
+  color-scheme: light;
+  --page: #ffffff;
+  --card: #ffffff;
+  --surface: #f3f6f9;
+  --ink: #111111;
+  --ink-2: #222222;
+  --body: #444444;
+  --muted: #666666;
+  --subtle: #777777;
+  --faint: #888888;
+  --line: #e5e7eb;
+  --line-strong: #d8d8d8;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eaf0fd;
+  --accent: #2563eb;
+  --success: #16a34a;
+  --success-soft: #f3faf6;
+  --success-line: #cfeedd;
+  --card-shadow: 0 1px 2px rgb(17 17 17 / 0.04), 0 4px 16px rgb(17 17 17 / 0.04);
+  --grid-line: rgb(17 24 39 / 0.05);
+  --checker-a: #f1f3f6;
+  --checker-b: #e2e6ec;
+  --track: #dedede;
+  /* Background glow from the design: box-shadow 0 0 50px #2563EB4D behind a 400px backdrop blur.
+     Kept out of @theme so it doesn't generate a clashing `bg-glow` colour utility. */
+  --glow: #2563eb4d;
+  --glow-mid: rgb(37 99 235 / 0.12);
+  --glow-soft: rgb(37 99 235 / 0.05);
+  --header-line: #e2e8f0;
+  --header-bg: #ffffff;
+  --header-glow: none;
+}
+
+/* Dark theme: deep navy page, slightly raised grey sections and cards, lighter blue for text, and
+   softer glows so the background stays calm. */
+.dark {
+  color-scheme: dark;
+  --page: #0a0f1c;
+  --card: #121a2c;
+  --surface: #0f1626;
+  --ink: #f3f5f9;
+  --ink-2: #e6e9f0;
+  --body: #c6ccd8;
+  --muted: #a9b1bf;
+  --subtle: #9aa3b3;
+  --faint: #7e889a;
+  --line: #222d42;
+  --line-strong: #344159;
+  --primary-hover: #3b82f6;
+  --primary-soft: rgb(59 130 246 / 0.14);
+  --accent: #6aa3ff;
+  --success: #34d27a;
+  --success-soft: rgb(34 197 94 / 0.1);
+  --success-line: rgb(34 197 94 / 0.28);
+  --card-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
+  --header-line: #1e293b;
+  --header-bg: var(--page);
+  --header-glow: radial-gradient(closest-side, var(--glow), var(--glow-mid) 35%, var(--glow-soft) 70%, transparent);
+  --grid-line: rgb(148 163 184 / 0.055);
+  --checker-a: #182235;
+  --checker-b: #212c42;
+  --track: #2a3650;
+  --glow: rgb(59 130 246 / 0.2);
+  --glow-mid: rgb(59 130 246 / 0.08);
+  --glow-soft: rgb(59 130 246 / 0.03);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--page);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1344px;
+  padding-inline: 1rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 1.25rem;
+  }
+
+  @media (width >= 48rem) {
+    padding-inline: 2rem;
+  }
+}
+
+/* Hero, as in the design: a large glow at the upper right (continuing into the header), a wide glow at
+   the middle left, and a fine grid that is clearest behind the title/tool and fades out lower down.
+   Layer order: glows, then a fade that hides only the grid, then the grid lines. */
+@utility bg-hero {
+  background-color: var(--page);
+  background-image:
+    radial-gradient(closest-side, var(--glow), var(--glow-mid) 35%, var(--glow-soft) 70%, transparent),
+    radial-gradient(closest-side, var(--glow), var(--glow-mid) 35%, var(--glow-soft) 70%, transparent),
+    linear-gradient(to bottom, transparent 0, transparent 520px, var(--page) 900px),
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size:
+    min(900px, 120vw) 700px,
+    min(820px, 110vw) 720px,
+    100% 100%,
+    32px 32px,
+    32px 32px;
+  background-position:
+    right -234px top -173px,
+    left -330px top 190px,
+    0 0,
+    0 0,
+    0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
+}
+
+/* Header: the top part of the hero's upper-right glow (same size and gradient, shifted up by the header
+   height) so it flows behind the navigation like in the design. */
+@utility bg-header-glow {
+  /* Light mode: plain white header. Dark mode: the hero glow continues up behind the navigation. */
+  background-color: var(--header-bg);
+  background-image: var(--header-glow);
+  background-size: min(900px, 120vw) 700px;
+  /* hero glow top (-173px) minus the header height (72px / 80px) */
+  background-position: right -234px top -245px;
+  background-repeat: no-repeat;
+
+  @media (width >= 48rem) {
+    background-position: right -234px top -253px;
+  }
+}
+
+/* Soft blue glows used on the white content sections (Privacy First, Blogs): a broad wash at the upper
+   right reaching in behind the cards, and a wide glow along the bottom left, as in the design. The quick
+   fall-off after the #2563EB4D core mimics the design's 400px blur. */
+@utility bg-glow {
+  background-color: var(--page);
+  background-image:
+    radial-gradient(closest-side, var(--glow), var(--glow-mid) 35%, var(--glow-soft) 70%, transparent),
+    radial-gradient(closest-side, var(--glow), var(--glow-mid) 35%, var(--glow-soft) 70%, transparent);
+  background-size:
+    min(980px, 110vw) 700px,
+    min(860px, 100vw) 460px;
+  background-position:
+    right -220px top -180px,
+    left -200px bottom -170px;
+  background-repeat: no-repeat;
+}
+
+/* Quality slider: blue fill up to the value, grey track after it. */
+.quality-range {
+  appearance: none;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+}
+.quality-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-primary) var(--fill), var(--track) var(--fill));
+}
+.quality-range::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-primary) var(--fill), var(--track) var(--fill));
+}
+.quality-range::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  border: 3px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+}
+.quality-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  border: 3px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+}
+
+/* Always-visible horizontal scrollbar for the image grid (overlay scrollbars would hide it). */
+.tile-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) var(--surface);
+  padding-bottom: 12px;
+}
+.tile-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.tile-scroll::-webkit-scrollbar-track {
+  border-radius: 9999px;
+  background: var(--surface);
+}
+.tile-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--line-strong);
+}
+.tile-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Checkerboard so transparent pixels are visible in previews. */
+@utility bg-checker {
+  background-color: var(--checker-a);
+  background-image:
+    linear-gradient(45deg, var(--checker-b) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checker-b) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker-b) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checker-b) 75%);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0;
+}
