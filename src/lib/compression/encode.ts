@@ -74,12 +74,14 @@ async function encodeWebp(image: ImageData, quality: number): Promise<ArrayBuffe
   try {
     const { default: encode } = await import("@jsquash/webp/encode.js");
     const lossless = quality >= 100;
+    const small = megapixels(image) <= 1;
     return await encode(image, {
       quality: lossless ? 75 : quality,
       lossless: lossless ? 1 : 0,
-      // Method 6 compresses only a few percent better than 4 but takes 2–3× longer; small images can afford 5.
-      method: megapixels(image) > 1 ? 4 : 5,
-      use_sharp_yuv: 1,
+      // Method 6 compresses only a few percent better than 4 but takes 5-10x longer; small images can afford 5.
+      method: small ? 5 : 4,
+      // Sharper colour edges (mostly visible on small graphics and text) for about 20% more encode time.
+      use_sharp_yuv: small ? 1 : 0,
       alpha_quality: lossless ? 100 : Math.max(quality, 85),
       exact: 0,
     });
@@ -99,7 +101,8 @@ async function encodeAvif(image: ImageData, quality: number): Promise<ArrayBuffe
       lossless,
       // The encoder is single-threaded here, so lean towards speed; larger images go faster still.
       speed: megapixels(image) > 2 ? 9 : 8,
-      enableSharpYUV: !lossless,
+      // Sharp YUV doubles encode time in this build without making files any smaller.
+      enableSharpYUV: false,
     });
     if (!result) throw new Error("empty");
     return result;
@@ -112,13 +115,36 @@ async function encodePng(image: ImageData, quality: number): Promise<ArrayBuffer
   const { default: UPNG } = await import("upng-js");
   // Below 100, reduce to an optimal palette (keeps transparency); at 100 the PNG stays lossless.
   const colors = quality >= 100 ? 0 : pngPaletteSize(quality);
-  const png = UPNG.encode([image.data.buffer as ArrayBuffer], image.width, image.height, colors);
+  const encode = () => UPNG.encode([image.data.buffer as ArrayBuffer], image.width, image.height, colors);
   try {
-    const { optimisePng: optimise } = await import("./single-thread");
+    const [{ optimisePng: optimise }, { zlibSync }] = await Promise.all([import("./single-thread"), import("fflate")]);
+    // oxipng redoes all filtering and compression, so UPNG's own deflate passes would be thrown away.
+    // Palette images fit UPNG's output buffer uncompressed; lossless RGBA might not, so it keeps UPNG's deflate.
+    const png = colors > 0 ? withStoredDeflate(UPNG, (data) => zlibSync(data, { level: 0 }), encode) : encode();
     // Lossless pass: finds the best PNG filters and deflate settings without changing a pixel.
-    return await optimise(png, { level: megapixels(image) > 4 ? 1 : 2, interlace: false, optimiseAlpha: true });
+    return await optimise(png, { level: megapixels(image) > 1 ? 1 : 2, interlace: false, optimiseAlpha: true });
   } catch {
-    return png;
+    return encode();
+  }
+}
+
+type UpngEncodeInternals = {
+  _filterZero: (img: Uint8Array, h: number, bpp: number, bpl: number, data: Uint8Array) => Uint8Array;
+  _filterLine: (data: Uint8Array, img: Uint8Array, y: number, bpl: number, bpp: number, type: number) => void;
+};
+
+/** Runs a UPNG encode that writes unfiltered, uncompressed image data instead of trying several pako passes. */
+function withStoredDeflate<T>(UPNG: typeof import("upng-js"), deflate: (data: Uint8Array) => Uint8Array, run: () => T): T {
+  const internals = UPNG.encode as unknown as UpngEncodeInternals;
+  const original = internals._filterZero;
+  internals._filterZero = (img, h, bpp, bpl, data) => {
+    for (let y = 0; y < h; y++) internals._filterLine(data, img, y, bpl, bpp, 0);
+    return deflate(data);
+  };
+  try {
+    return run();
+  } finally {
+    internals._filterZero = original;
   }
 }
 
