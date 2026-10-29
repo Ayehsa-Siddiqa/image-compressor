@@ -53,19 +53,21 @@ interface State {
   started: boolean;
   finished: boolean;
   notices: string[];
+  /** Timing of the current or most recent compression run (Date.now() values). */
+  run: { startedAt: number; endedAt?: number; completed: number } | null;
 }
 
 type Action =
   | { type: "add"; items: ImageItem[]; notices: string[] }
   | { type: "replace"; id: string; item: ImageItem }
-  | { type: "remove"; id: string }
+  | { type: "remove"; id: string; at: number }
   | { type: "clear" }
   | { type: "select"; id: string }
   | { type: "start" }
   | { type: "apply-settings"; settings: Settings }
-  | { type: "processing"; id: string }
-  | { type: "done"; id: string; output: CompressedOutput; width: number; height: number; originalPreviewUrl?: string }
-  | { type: "error"; id: string; message: string }
+  | { type: "processing"; id: string; at: number }
+  | { type: "done"; id: string; at: number; output: CompressedOutput; width: number; height: number; originalPreviewUrl?: string }
+  | { type: "error"; id: string; at: number; message: string }
   | { type: "dimensions"; id: string; width: number; height: number }
   | { type: "finish" }
   | { type: "dismiss-notices" };
@@ -77,10 +79,22 @@ const initialState: State = {
   started: false,
   finished: false,
   notices: [],
+  run: null,
 };
 
 function update(items: ImageItem[], id: string, patch: (item: ImageItem) => ImageItem) {
   return items.map((item) => (item.id === id ? patch(item) : item));
+}
+
+/** Counts one more image as finished in the current run. */
+function countCompleted(state: State): State {
+  return state.run ? { ...state, run: { ...state.run, completed: state.run.completed + 1 } } : state;
+}
+
+/** Closes the run once nothing is compressing or waiting to be compressed. */
+function endRunIfIdle(state: State, at: number): State {
+  const busy = state.items.some((item) => item.status === "processing" || needsWork(item, state.settings));
+  return busy || !state.run || state.run.endedAt ? state : { ...state, run: { ...state.run, endedAt: at } };
 }
 
 function reducer(state: State, action: Action): State {
@@ -103,7 +117,8 @@ function reducer(state: State, action: Action): State {
       const items = state.items.filter((item) => item.id !== action.id);
       if (items.length === 0) return { ...initialState, settings: state.settings };
       const selectedId = state.selectedId === action.id ? items[0].id : state.selectedId;
-      return { ...state, items, selectedId };
+      // Removing the last image still being compressed ends the run.
+      return endRunIfIdle({ ...state, items, selectedId }, action.at);
     }
     case "clear":
       return { ...initialState, settings: state.settings };
@@ -114,9 +129,13 @@ function reducer(state: State, action: Action): State {
     case "apply-settings":
       return { ...state, settings: action.settings, started: true };
     case "processing":
-      return { ...state, items: update(state.items, action.id, (i) => ({ ...i, status: "processing", error: undefined })) };
-    case "done":
       return {
+        ...state,
+        items: update(state.items, action.id, (i) => ({ ...i, status: "processing", error: undefined })),
+        run: state.run && !state.run.endedAt ? state.run : { startedAt: action.at, completed: 0 },
+      };
+    case "done":
+      return endRunIfIdle(countCompleted({
         ...state,
         items: update(state.items, action.id, (i) => ({
           ...i,
@@ -126,12 +145,12 @@ function reducer(state: State, action: Action): State {
           height: action.height,
           originalPreviewUrl: action.originalPreviewUrl ?? i.originalPreviewUrl,
         })),
-      };
+      }), action.at);
     case "error":
-      return {
+      return endRunIfIdle(countCompleted({
         ...state,
         items: update(state.items, action.id, (i) => ({ ...i, status: "error", error: action.message, output: undefined })),
-      };
+      }), action.at);
     case "dimensions":
       return {
         ...state,
@@ -197,7 +216,7 @@ export function useImageCompressor() {
     const ready = state.items.filter((item) => !inFlight.current.has(item.id) && needsWork(item, settings));
     for (const next of ready.slice(0, room)) {
       inFlight.current.add(next.id);
-      dispatch({ type: "processing", id: next.id });
+      dispatch({ type: "processing", id: next.id, at: Date.now() });
 
       compressImage({
         file: next.file,
@@ -227,13 +246,13 @@ export function useImageCompressor() {
           if (current.output) URL.revokeObjectURL(current.output.url);
           const originalPreviewUrl =
             originalPreview && !current.originalPreviewUrl ? URL.createObjectURL(originalPreview) : undefined;
-          dispatch({ type: "done", id: next.id, output, width, height, originalPreviewUrl });
+          dispatch({ type: "done", id: next.id, at: Date.now(), output, width, height, originalPreviewUrl });
         })
         .catch((error: unknown) => {
           const current = stateRef.current.items.find((item) => item.id === next.id);
           if (current?.output) URL.revokeObjectURL(current.output.url);
           const message = error instanceof CompressError ? error.message : "Something went wrong while compressing this image.";
-          dispatch({ type: "error", id: next.id, message });
+          dispatch({ type: "error", id: next.id, at: Date.now(), message });
         })
         .finally(() => {
           inFlight.current.delete(next.id);
@@ -275,7 +294,7 @@ export function useImageCompressor() {
   const removeItem = useCallback((id: string) => {
     const current = stateRef.current.items.find((item) => item.id === id);
     if (current) revokeItem(current);
-    dispatch({ type: "remove", id });
+    dispatch({ type: "remove", id, at: Date.now() });
   }, []);
 
   const clear = useCallback(() => {

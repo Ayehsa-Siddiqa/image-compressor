@@ -8,6 +8,7 @@ import { downloadBlob, zipFiles } from "@/lib/download";
 import { downloadName } from "@/lib/format";
 import { buttonClass } from "@/components/ui/button";
 import { AdvancedOptions } from "./advanced-options";
+import { BatchStatus } from "./batch-status";
 import { ComparisonSlider } from "./comparison-slider";
 import { DropZone } from "./drop-zone";
 import { ImageGrid } from "./image-grid";
@@ -51,7 +52,6 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
   }
 
   const errors = state.items.filter((item) => item.status === "error");
-  const processed = summary.doneCount + summary.errorCount;
   const total = state.items.length;
 
   return (
@@ -77,6 +77,8 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
             </button>
           </div>
 
+          <BatchStatus started={state.started} total={state.items.length} summary={summary} run={state.run} />
+
           <ImageGrid
             items={state.items}
             selectedId={state.selectedId}
@@ -93,22 +95,10 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
                 Compress
               </button>
             ) : summary.isProcessing ? (
-              <>
-                <button type="button" className={buttonClass("primary")} disabled>
-                  <LoaderCircle className="size-5 animate-spin" aria-hidden />
-                  Compressing {Math.min(processed + 1, total)} of {total}…
-                </button>
-                <div
-                  className="h-1.5 w-56 overflow-hidden rounded-full bg-primary-soft"
-                  role="progressbar"
-                  aria-label="Compression progress"
-                  aria-valuemin={0}
-                  aria-valuemax={total}
-                  aria-valuenow={processed}
-                >
-                  <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(processed / total) * 100}%` }} />
-                </div>
-              </>
+              <button type="button" className={buttonClass("primary")} disabled>
+                <LoaderCircle className="size-5 animate-spin" aria-hidden />
+                Compressing {total - summary.remaining} of {total} done…
+              </button>
             ) : summary.doneCount > 0 ? (
               <button type="button" className={buttonClass("primary")} onClick={downloadAll} disabled={zipping}>
                 {zipping ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Download className="size-5" aria-hidden />}

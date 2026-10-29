@@ -12,6 +12,14 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(digits).replace(/\.0+$/, "")} ${UNITS[unit]}`;
 }
 
+/** 800 → "0.8s", 12_400 → "12s", 65_000 → "1m 05s". */
+export function formatDuration(ms: number): string {
+  if (ms < 10_000) return `${(Math.max(0, ms) / 1000).toFixed(1)}s`;
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;
+}
+
 /** Percentage saved, rounded down so "−100%" is never shown for a non-empty file. */
 export function savedPercent(original: number, compressed: number): number {
   if (original <= 0 || compressed >= original) return 0;
