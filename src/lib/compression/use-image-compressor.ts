@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { compressImage } from "./client";
+import { compressImage, compressionConcurrency } from "./client";
 import { SUPPORTED_LABEL, detectFormat, type InputFormat, type OutputChoice, type OutputFormat } from "./formats";
 import { DEFAULT_QUALITY, MAX_FILE_BYTES, MAX_FILES } from "./limits";
 import { CompressError } from "./types";
@@ -178,7 +178,7 @@ function revokeItem(item: ImageItem) {
 export function useImageCompressor() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const stateRef = useRef(state);
-  const busy = useRef(false);
+  const inFlight = useRef(new Set<string>());
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -188,56 +188,58 @@ export function useImageCompressor() {
   // Free every object URL when the compressor unmounts.
   useEffect(() => () => stateRef.current.items.forEach(revokeItem), []);
 
-  // Process one image at a time; re-runs whenever an image finishes or the queue changes.
+  // Process as many images at once as the device has workers for; re-runs whenever an image finishes or the queue changes.
   useEffect(() => {
-    if (!state.started || busy.current) return;
+    if (!state.started) return;
     const settings = state.settings;
-    const next = state.items.find((item) => needsWork(item, settings));
-    if (!next) return;
+    const room = compressionConcurrency() - inFlight.current.size;
+    if (room <= 0) return;
+    const ready = state.items.filter((item) => !inFlight.current.has(item.id) && needsWork(item, settings));
+    for (const next of ready.slice(0, room)) {
+      inFlight.current.add(next.id);
+      dispatch({ type: "processing", id: next.id });
 
-    busy.current = true;
-    dispatch({ type: "processing", id: next.id });
-
-    compressImage({
-      file: next.file,
-      format: next.format,
-      quality: settings.quality,
-      output: settings.output,
-      estimateOnly: !!next.originalPreviewUrl,
-    })
-      .then(({ blob, width, height, format, notes, originalPreview }) => {
-        const current = stateRef.current.items.find((item) => item.id === next.id);
-        if (!current) return; // removed or replaced meanwhile
-        const converted = format !== next.format;
-        const reduced = blob.size < next.file.size;
-        // Same format and not smaller: hand back the original rather than a bigger file.
-        const kept = reduced || converted ? blob : next.file;
-        const output: CompressedOutput = {
-          blob: kept,
-          url: URL.createObjectURL(kept),
-          size: kept.size,
-          encodedSize: blob.size,
-          reduced,
-          converted,
-          format,
-          settings,
-          notes,
-        };
-        if (current.output) URL.revokeObjectURL(current.output.url);
-        const originalPreviewUrl =
-          originalPreview && !current.originalPreviewUrl ? URL.createObjectURL(originalPreview) : undefined;
-        dispatch({ type: "done", id: next.id, output, width, height, originalPreviewUrl });
+      compressImage({
+        file: next.file,
+        format: next.format,
+        quality: settings.quality,
+        output: settings.output,
+        estimateOnly: !!next.originalPreviewUrl,
       })
-      .catch((error: unknown) => {
-        const current = stateRef.current.items.find((item) => item.id === next.id);
-        if (current?.output) URL.revokeObjectURL(current.output.url);
-        const message = error instanceof CompressError ? error.message : "Something went wrong while compressing this image.";
-        dispatch({ type: "error", id: next.id, message });
-      })
-      .finally(() => {
-        busy.current = false;
-        setTick((t) => t + 1);
-      });
+        .then(({ blob, width, height, format, notes, originalPreview }) => {
+          const current = stateRef.current.items.find((item) => item.id === next.id);
+          if (!current) return; // removed or replaced meanwhile
+          const converted = format !== next.format;
+          const reduced = blob.size < next.file.size;
+          // Same format and not smaller: hand back the original rather than a bigger file.
+          const kept = reduced || converted ? blob : next.file;
+          const output: CompressedOutput = {
+            blob: kept,
+            url: URL.createObjectURL(kept),
+            size: kept.size,
+            encodedSize: blob.size,
+            reduced,
+            converted,
+            format,
+            settings,
+            notes,
+          };
+          if (current.output) URL.revokeObjectURL(current.output.url);
+          const originalPreviewUrl =
+            originalPreview && !current.originalPreviewUrl ? URL.createObjectURL(originalPreview) : undefined;
+          dispatch({ type: "done", id: next.id, output, width, height, originalPreviewUrl });
+        })
+        .catch((error: unknown) => {
+          const current = stateRef.current.items.find((item) => item.id === next.id);
+          if (current?.output) URL.revokeObjectURL(current.output.url);
+          const message = error instanceof CompressError ? error.message : "Something went wrong while compressing this image.";
+          dispatch({ type: "error", id: next.id, message });
+        })
+        .finally(() => {
+          inFlight.current.delete(next.id);
+          setTick((t) => t + 1);
+        });
+    }
   }, [state.started, state.items, state.settings, tick]);
 
   const addFiles = useCallback(async (files: Iterable<File>) => {

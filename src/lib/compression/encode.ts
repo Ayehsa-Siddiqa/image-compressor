@@ -55,8 +55,9 @@ async function encodeJpeg(image: ImageData, quality: number): Promise<ArrayBuffe
       quality,
       progressive: true,
       optimize_coding: true,
-      // Trellis quantisation finds smaller encodings at the same visual quality.
-      trellis_multipass: true,
+      // Trellis quantisation finds smaller encodings at the same visual quality. The multipass variant is
+      // several times slower for about 1% smaller files, so it stays off.
+      trellis_multipass: false,
       trellis_opt_zero: true,
       trellis_opt_table: true,
       // Keep full colour resolution at high quality so red/blue edges and text stay crisp.
@@ -76,8 +77,8 @@ async function encodeWebp(image: ImageData, quality: number): Promise<ArrayBuffe
     return await encode(image, {
       quality: lossless ? 75 : quality,
       lossless: lossless ? 1 : 0,
-      // Method 6 compresses best; large images use 4 to stay fast.
-      method: megapixels(image) > 8 ? 4 : 6,
+      // Method 6 compresses only a few percent better than 4 but takes 2–3× longer; small images can afford 5.
+      method: megapixels(image) > 1 ? 4 : 5,
       use_sharp_yuv: 1,
       alpha_quality: lossless ? 100 : Math.max(quality, 85),
       exact: 0,
@@ -96,7 +97,8 @@ async function encodeAvif(image: ImageData, quality: number): Promise<ArrayBuffe
       // libavif's scale is stricter than JPG's: our 80 maps to 60, which looks visually lossless for most photos.
       quality: lossless ? 100 : Math.max(1, Math.round(quality * 0.75)),
       lossless,
-      speed: megapixels(image) > 4 ? 8 : 6,
+      // The encoder is single-threaded here, so lean towards speed; larger images go faster still.
+      speed: megapixels(image) > 2 ? 9 : 8,
       enableSharpYUV: !lossless,
     });
     if (!result) throw new Error("empty");
@@ -114,7 +116,7 @@ async function encodePng(image: ImageData, quality: number): Promise<ArrayBuffer
   try {
     const { optimisePng: optimise } = await import("./single-thread");
     // Lossless pass: finds the best PNG filters and deflate settings without changing a pixel.
-    return await optimise(png, { level: megapixels(image) > 8 ? 1 : 2, interlace: false, optimiseAlpha: true });
+    return await optimise(png, { level: megapixels(image) > 4 ? 1 : 2, interlace: false, optimiseAlpha: true });
   } catch {
     return png;
   }
