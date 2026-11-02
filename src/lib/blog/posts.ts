@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheTag } from "next/cache";
-import { blogPosts as builtInPosts, type ArticleBlock, type BlogImage, type BlogPost } from "@/content/blogs";
+import { blogPosts as builtInPosts, type ArticleBlock, type BlogImage, type BlogPost, type PostFaq, type PostSeo } from "@/content/blogs";
 import { getSupabase } from "@/lib/supabase";
 
 /** Cache tag for everything the public site shows from the blog; the dashboard expires it on every change. */
@@ -27,6 +27,9 @@ interface PostRow {
   hero_image: BlogImage;
   hero_image_alt: string;
   body: ArticleBlock[];
+  content_html: string | null;
+  faq: PostFaq | null;
+  seo: PostSeo | null;
   updated_at: string;
 }
 
@@ -45,6 +48,10 @@ function toPost(row: PostRow): AdminPost {
     heroImage: row.hero_image,
     heroImageAlt: row.hero_image_alt,
     body: row.body,
+    // Missing until supabase/migrations/002_rich_text_and_seo.sql has been run.
+    contentHtml: row.content_html ?? null,
+    faq: row.faq ?? null,
+    seo: row.seo ?? {},
   };
 }
 
@@ -61,6 +68,9 @@ export function toRow(post: BlogPost & { status: PostStatus }): Omit<PostRow, "i
     hero_image: post.heroImage,
     hero_image_alt: post.heroImageAlt,
     body: post.body,
+    content_html: post.contentHtml ?? null,
+    faq: post.faq ?? null,
+    seo: post.seo ?? {},
   };
 }
 

@@ -3,10 +3,11 @@
 import { randomUUID } from "node:crypto";
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { blogPosts as builtInPosts, type BlogImage } from "@/content/blogs";
+import { blogPosts as builtInPosts, type BlogImage, type PostFaq, type PostSeo } from "@/content/blogs";
 import { MAX_IMAGE_BYTES } from "@/lib/blog/limits";
-import { markdownToBlocks } from "@/lib/blog/markdown";
+import { htmlToText } from "@/lib/blog/html";
 import { POSTS_TAG, toRow, type PostStatus } from "@/lib/blog/posts";
+import { sanitizeArticleHtml } from "@/lib/blog/sanitize";
 import type { FormState } from "@/lib/forms/types";
 import { text, validateEmail, validateName, validateNewPassword } from "@/lib/forms/validation";
 import { BLOG_IMAGES_BUCKET, getSupabase } from "@/lib/supabase";
@@ -53,7 +54,21 @@ export async function logoutAdmin() {
 
 /* ---------- posts ---------- */
 
-type PostField = "title" | "cardTitle" | "slug" | "description" | "publishedAt" | "heroImage" | "heroImageAlt" | "cardImage" | "body";
+type PostField =
+  | "title"
+  | "cardTitle"
+  | "slug"
+  | "description"
+  | "publishedAt"
+  | "heroImage"
+  | "heroImageAlt"
+  | "cardImage"
+  | "body"
+  | "faq"
+  | "seoTitle"
+  | "seoDescription"
+  | "seoKeywords"
+  | "seoCanonical";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -66,6 +81,23 @@ function parseImage(value: FormDataEntryValue | null): BlogImage | null {
   } catch {
     return null;
   }
+}
+
+/** The FAQ editor's JSON, without empty rows; null when there are no questions. */
+function parseFaq(value: FormDataEntryValue | null): { faq: PostFaq | null; error?: string } {
+  let raw: Partial<PostFaq>;
+  try {
+    raw = JSON.parse(String(value || "null")) ?? {};
+  } catch {
+    return { faq: null, error: "The FAQ couldn't be read. Reload the page and try again." };
+  }
+  const items = (raw.items ?? [])
+    .map((item) => ({ question: String(item?.question ?? "").trim(), answer: String(item?.answer ?? "").trim() }))
+    .filter((item) => item.question || item.answer);
+  if (items.length === 0) return { faq: null };
+  if (items.some((item) => !item.question || !item.answer)) return { faq: null, error: "Every FAQ entry needs both a question and an answer." };
+  const title = String(raw.title ?? "").trim() || "Frequently Asked Questions";
+  return { faq: { title, subtitle: String(raw.subtitle ?? "").trim(), items } };
 }
 
 export async function savePost(_prev: FormState<PostField>, formData: FormData): Promise<FormState<PostField>> {
@@ -82,29 +114,61 @@ export async function savePost(_prev: FormState<PostField>, formData: FormData):
   // The card falls back to the article's main image.
   const cardImage = parseImage(formData.get("cardImage")) ?? heroImage;
   const cardImageAlt = text(formData, "cardImageAlt") || heroImageAlt;
-  const markdown = String(formData.get("body") ?? "");
-  const { blocks, error: bodyError } = markdownToBlocks(markdown);
+  const contentHtml = sanitizeArticleHtml(String(formData.get("body") ?? ""));
+  const { faq, error: faqError } = parseFaq(formData.get("faq"));
+
+  const seoKeywords = text(formData, "seoKeywords");
+  const seoCanonical = text(formData, "seoCanonical");
+  const seo: PostSeo = {
+    title: text(formData, "seoTitle") || undefined,
+    description: text(formData, "seoDescription") || undefined,
+    keywords: seoKeywords ? [...new Set(seoKeywords.split(",").map((keyword) => keyword.trim()).filter(Boolean))] : undefined,
+    canonical: seoCanonical || undefined,
+    ogImage: parseImage(formData.get("seoImage")),
+    noindex: formData.get("seoNoindex") === "on",
+  };
 
   const fieldErrors = {
     title: !title ? "Enter a title." : title.length > 200 ? "Keep the title under 200 characters." : undefined,
     cardTitle: cardTitle.length > 200 ? "Keep the card title under 200 characters." : undefined,
     slug: !SLUG.test(slug) ? "Use lowercase letters, numbers and single hyphens, e.g. how-to-compress-png." : undefined,
     description: !description
-      ? "Enter a short description (shown in search results)."
+      ? "Enter a short summary of the post."
       : description.length > 300
-        ? "Keep the description under 300 characters."
+        ? "Keep the summary under 300 characters."
         : undefined,
     publishedAt: Number.isNaN(Date.parse(publishedAt)) ? "Choose a date." : undefined,
     heroImage: heroImage ? undefined : "Upload the main image.",
     heroImageAlt: heroImageAlt ? undefined : "Describe the main image for people who can't see it.",
-    body: bodyError ?? (blocks.length === 0 ? "Write the article." : undefined),
+    body: htmlToText(contentHtml) || contentHtml.includes("<img") ? undefined : "Write the article.",
+    faq: faqError,
+    seoTitle: (seo.title?.length ?? 0) > 120 ? "Keep the SEO title under 120 characters (about 60 show in Google)." : undefined,
+    seoDescription: (seo.description?.length ?? 0) > 320 ? "Keep the meta description under 320 characters (about 155 show in Google)." : undefined,
+    seoKeywords: seoKeywords.length > 500 ? "Use a few focused keywords." : undefined,
+    seoCanonical: seoCanonical && !/^https:\/\/\S+$/.test(seoCanonical) ? "Enter a full https:// address, or leave it empty." : undefined,
   };
-  // Refill everything except the images (their pickers keep their own state).
-  const values = { title, cardTitle: text(formData, "cardTitle"), slug, description, publishedAt, heroImageAlt, body: markdown };
+  // The images, article, FAQ and SEO fields keep their own state in the editor.
+  const values = { title, cardTitle: text(formData, "cardTitle"), slug, description, publishedAt, heroImageAlt };
   if (hasErrors(fieldErrors)) return { status: "error", fieldErrors, values, message: "Please fix the highlighted fields." };
 
   const row = {
-    ...toRow({ slug, status, title, cardTitle, description, publishedAt, cardImage: cardImage!, cardImageAlt, heroImage: heroImage!, heroImageAlt, body: blocks }),
+    ...toRow({
+      slug,
+      status,
+      title,
+      cardTitle,
+      description,
+      publishedAt,
+      cardImage: cardImage!,
+      cardImageAlt,
+      heroImage: heroImage!,
+      heroImageAlt,
+      // The article now lives in content_html, so the old blocks are cleared.
+      body: [],
+      contentHtml,
+      faq,
+      seo,
+    }),
     updated_at: new Date().toISOString(),
   };
   const db = database();
@@ -114,6 +178,9 @@ export async function savePost(_prev: FormState<PostField>, formData: FormData):
   if (result.error) {
     if (result.error.code === UNIQUE_VIOLATION) {
       return { status: "error", fieldErrors: { slug: "Another post already uses this URL slug." }, values };
+    }
+    if (/content_html|'seo'|'faq'/.test(result.error.message)) {
+      return { status: "error", message: "The database needs an update: run supabase/migrations/002_rich_text_and_seo.sql in the Supabase SQL editor.", values };
     }
     return { status: "error", message: `Couldn't save: ${result.error.message}`, values };
   }

@@ -62,9 +62,9 @@ export function PageHeader({ title, icon: Icon, subtitle, actions }: { title: st
   );
 }
 
-/** Scrolling body of the content panel. */
+/** Scrolling body of the content panel. `relative` keeps absolutely positioned bits (e.g. sr-only file inputs) inside it. */
 export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-5">{children}</div>;
+  return <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-5">{children}</div>;
 }
 
 export function Card({ title, description, children, className = "" }: { title?: string; description?: string; children: ReactNode; className?: string }) {

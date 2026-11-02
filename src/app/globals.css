@@ -278,3 +278,74 @@
     10px -10px,
     -10px 0;
 }
+
+/* Articles written in the dashboard's rich text editor. Matches ArticleBody (the built-in posts), and the
+   editor uses the same rules so what you type looks like the published page. */
+.article-content {
+  @apply text-[15px] leading-[1.5] text-subtle sm:text-base sm:leading-[1.4] md:text-lg;
+
+  & > :first-child {
+    margin-top: 0;
+  }
+  & h2 {
+    @apply mt-12 font-display text-[24px] leading-[1.15] font-bold text-ink sm:text-4xl md:mt-16 md:text-[48px];
+  }
+  & h3 {
+    @apply mt-6 font-sans text-lg leading-tight font-bold text-ink-2 sm:text-xl md:text-2xl;
+  }
+  & p {
+    @apply mt-4;
+  }
+  & p + p {
+    @apply mt-3;
+  }
+  & h3 + p {
+    @apply mt-2;
+  }
+  & ul,
+  & ol {
+    @apply mt-4 space-y-0.5 pl-6 marker:text-subtle;
+  }
+  & ul {
+    @apply list-disc;
+  }
+  & ol {
+    @apply list-decimal;
+  }
+  & li > p {
+    margin-top: 0;
+  }
+  & strong,
+  & b {
+    @apply font-bold text-muted;
+  }
+  & a {
+    @apply text-accent underline-offset-2 hover:underline;
+  }
+  & blockquote {
+    @apply mt-6 border-l-4 border-primary pl-4 text-body italic;
+  }
+  & img {
+    @apply mt-6 h-auto max-w-full rounded-xl;
+  }
+  & hr {
+    @apply my-8 border-line;
+  }
+}
+
+/* Smaller headings inside the editor so a whole section fits on screen. */
+.article-editor {
+  & h2 {
+    @apply mt-8 text-[28px] md:mt-10 md:text-[32px];
+  }
+  & img.ProseMirror-selectednode {
+    outline: 3px solid var(--color-primary);
+  }
+  & p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: var(--faint);
+  }
+}

@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId, useMemo, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import { ArrowLeft, FileText, ImagePlus, LoaderCircle, Save, X } from "lucide-react";
-import { savePost, uploadBlogImage } from "@/lib/admin/actions";
-import { MAX_IMAGE_BYTES } from "@/lib/blog/limits";
-import { markdownToBlocks } from "@/lib/blog/markdown";
+import { savePost } from "@/lib/admin/actions";
 import { initialFormState } from "@/lib/forms/types";
-import type { BlogImage } from "@/content/blogs";
+import type { BlogImage, PostFaq } from "@/content/blogs";
 import type { AdminPost } from "@/lib/blog/posts";
-import { ArticleBody } from "@/components/blog/article-body";
 import { FormAlert, TextAreaField, TextField } from "@/components/forms/fields";
-import { PageBody, PageHeader, dashButton, iconButton } from "./ui";
+import { FaqEditor } from "./faq-editor";
+import { RichTextEditor } from "./rich-text-editor";
+import { SeoFields } from "./seo-fields";
+import { Card, PageBody, PageHeader, dashButton, iconButton } from "./ui";
+import { uploadImageFile } from "./upload-image";
 
 const slugify = (title: string) =>
   title
@@ -26,13 +27,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 interface PostEditorProps {
   post?: AdminPost;
-  /** The post's body as editor Markdown (converted on the server). */
-  initialBody?: string;
+  /** The article as editor HTML (older posts are converted on the server). */
+  initialHtml?: string;
+  initialFaq?: PostFaq | null;
   /** Just created: show a confirmation. */
   created?: boolean;
 }
 
-export function PostEditor({ post, initialBody = "", created }: PostEditorProps) {
+export function PostEditor({ post, initialHtml = "", initialFaq = null, created }: PostEditorProps) {
   const [state, formAction, pending] = useActionState(
     savePost,
     created ? { status: "success" as const, message: "Post created." } : initialFormState,
@@ -44,10 +46,8 @@ export function PostEditor({ post, initialBody = "", created }: PostEditorProps)
   const [slug, setSlug] = useState(post?.slug ?? "");
   // New posts follow the title until the slug is edited by hand; existing URLs never change on their own.
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
-  const [body, setBody] = useState(initialBody);
+  const [description, setDescription] = useState(post?.description ?? "");
   const [status, setStatus] = useState(post?.status ?? "draft");
-  const [tab, setTab] = useState<"write" | "preview">("write");
-  const preview = useMemo(() => (tab === "preview" ? markdownToBlocks(body) : null), [tab, body]);
 
   return (
     <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col">
@@ -60,7 +60,7 @@ export function PostEditor({ post, initialBody = "", created }: PostEditorProps)
         actions={
           <>
             <Link href="/dashboard" className={iconButton("default", "size-10 border border-line")} aria-label="All posts" title="All posts">
-              <ArrowLeft className="size-3.5" aria-hidden />
+              <ArrowLeft className="size-4" aria-hidden />
             </Link>
             <select
               name="status"
@@ -83,148 +83,125 @@ export function PostEditor({ post, initialBody = "", created }: PostEditorProps)
       <PageBody>
         <FormAlert status={state.status} message={state.message} />
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-5 rounded-[6px] border border-line bg-card p-4">
-            <TextField
-              label="Title"
-              name="title"
-              required
-              value={title}
-              onChange={(event) => {
-                setTitle(event.target.value);
-                if (!slugTouched) setSlug(slugify(event.target.value));
-              }}
-              error={errors.title}
-            />
-            <TextField
-              label="URL slug"
-              name="slug"
-              required
-              value={slug}
-              onChange={(event) => {
-                setSlugTouched(true);
-                setSlug(event.target.value.toLowerCase().replace(/\s+/g, "-"));
-              }}
-              hint={`Address: /blogs/${slug || "…"}`}
-              error={errors.slug}
-            />
-            <TextAreaField
-              label="Description"
-              name="description"
-              required
-              maxLength={300}
-              defaultValue={values.description ?? post?.description}
-              hint="One or two sentences. Shown in search results and link previews."
-              error={errors.description}
-              className="min-h-[96px]"
-            />
-
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-bold text-ink-2 sm:text-[15px]" id="body-label">
-                  Article
-                </span>
-                <div className="flex rounded-lg border border-line p-0.5 text-sm" role="tablist" aria-label="Article editor">
-                  {(["write", "preview"] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === value}
-                      onClick={() => setTab(value)}
-                      className={`rounded-md px-3 py-1 capitalize ${tab === value ? "bg-primary-soft font-bold text-accent" : "text-body"}`}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-4">
+            <Card title="Post">
+              <div className="space-y-5 p-4">
+                <TextField
+                  label="Title"
+                  name="title"
+                  required
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    if (!slugTouched) setSlug(slugify(event.target.value));
+                  }}
+                  error={errors.title}
+                />
+                <TextField
+                  label="URL slug"
+                  name="slug"
+                  required
+                  value={slug}
+                  onChange={(event) => {
+                    setSlugTouched(true);
+                    setSlug(event.target.value.toLowerCase().replace(/\s+/g, "-"));
+                  }}
+                  hint={`Address: /blogs/${slug || "…"}`}
+                  error={errors.slug}
+                />
+                <TextAreaField
+                  label="Summary"
+                  name="description"
+                  required
+                  maxLength={300}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  hint="One or two sentences about the post. Also used as the meta description unless you set one under SEO."
+                  error={errors.description}
+                  className="min-h-[96px]"
+                />
               </div>
-              {/* The textarea stays mounted (hidden in preview) so its value is always submitted. */}
-              <textarea
-                name="body"
-                aria-labelledby="body-label"
-                aria-invalid={errors.body ? true : undefined}
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                hidden={tab === "preview"}
-                spellCheck
-                className={`block min-h-[460px] w-full resize-y rounded-[10px] border bg-card px-4 py-3 font-mono text-sm leading-relaxed text-ink-2 focus:border-primary focus:shadow-[0_0_0_3px_rgb(37_99_235/0.15)] focus:outline-none ${
-                  errors.body ? "border-danger" : "border-line-strong"
-                }`}
-                placeholder={"Intro paragraph…\n\n## A section heading\n\nSome text with **bold** and a [link](/blogs).\n\n- A list item\n- Another item"}
-              />
-              {tab === "preview" && preview && (
-                <div className="min-h-[460px] rounded-[10px] border border-line-strong bg-card px-5 py-4">
-                  {preview.error ? (
-                    <p className="text-danger">{preview.error}</p>
-                  ) : preview.blocks.length === 0 ? (
-                    <p className="text-faint">Nothing to preview yet.</p>
-                  ) : (
-                    <ArticleBody blocks={preview.blocks} />
-                  )}
-                </div>
-              )}
-              {errors.body && <p className="mt-1.5 text-sm text-danger">{errors.body}</p>}
-              <details className="mt-3 text-sm text-subtle">
-                <summary className="cursor-pointer text-accent">Formatting help</summary>
-                <ul className="mt-2 list-disc space-y-1 pl-5">
-                  <li>
-                    <code>## Heading</code> for a section, <code>### Heading</code> for a sub-heading
-                  </li>
-                  <li>Lines next to each other form one paragraph group; leave a blank line to add space before the next one</li>
-                  <li>
-                    <code>- item</code> on consecutive lines makes a bulleted list
-                  </li>
-                  <li>
-                    <code>**bold**</code> and <code>[link text](/blogs/some-post)</code> inside any text
-                  </li>
-                  <li>
-                    FAQ: <code>:::faq Title</code>, then a subtitle line, then <code>Q: …</code> / <code>A: …</code> pairs, and a closing <code>:::</code>
-                  </li>
-                </ul>
-              </details>
-            </div>
+            </Card>
+
+            <Card title="Article">
+              <div className="p-4">
+                <RichTextEditor name="body" initialHtml={initialHtml} error={errors.body} />
+                {errors.body && <p className="mt-1.5 text-sm text-danger">{errors.body}</p>}
+              </div>
+            </Card>
+
+            <Card title="FAQ" description="Optional questions and answers shown after the article. Google can show them in search results.">
+              <div className="p-4">
+                <FaqEditor name="faq" initial={initialFaq} error={errors.faq} />
+              </div>
+            </Card>
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-5 rounded-[6px] border border-line bg-card p-4">
-              <TextField
-                label="Publish date"
-                name="publishedAt"
-                type="date"
-                required
-                defaultValue={values.publishedAt ?? post?.publishedAt ?? today()}
-                error={errors.publishedAt}
-              />
-              <TextField
-                label="Card title"
-                name="cardTitle"
-                optional
-                defaultValue={values.cardTitle ?? (post && post.cardTitle !== post.title ? post.cardTitle : "")}
-                hint="Shorter title for blog cards. Uses the title if empty."
-                error={errors.cardTitle}
-              />
-            </div>
+            <Card title="Publishing">
+              <div className="space-y-5 p-4">
+                <TextField
+                  label="Publish date"
+                  name="publishedAt"
+                  type="date"
+                  required
+                  defaultValue={values.publishedAt ?? post?.publishedAt ?? today()}
+                  error={errors.publishedAt}
+                />
+                <TextField
+                  label="Card title"
+                  name="cardTitle"
+                  optional
+                  defaultValue={values.cardTitle ?? (post && post.cardTitle !== post.title ? post.cardTitle : "")}
+                  hint="Shorter title for blog cards. Uses the title if empty."
+                  error={errors.cardTitle}
+                />
+              </div>
+            </Card>
 
-            <div className="space-y-5 rounded-[6px] border border-line bg-card p-4">
-              <ImagePicker name="heroImage" label="Main image" initial={post?.heroImage} error={errors.heroImage} />
-              <TextField
-                label="Main image description"
-                name="heroImageAlt"
-                required
-                defaultValue={values.heroImageAlt ?? post?.heroImageAlt}
-                hint="Alt text: what the image shows."
-                error={errors.heroImageAlt}
-              />
-              <ImagePicker
-                name="cardImage"
-                label="Card image"
-                optional
-                hint="Shown on blog cards. Uses the main image if empty."
-                initial={post && post.cardImage.src !== post.heroImage.src ? post.cardImage : undefined}
-              />
-              <input type="hidden" name="cardImageAlt" value={post?.cardImageAlt ?? ""} />
-            </div>
+            <Card title="Images">
+              <div className="space-y-5 p-4">
+                <ImagePicker name="heroImage" label="Main image" initial={post?.heroImage} error={errors.heroImage} />
+                <TextField
+                  label="Main image description"
+                  name="heroImageAlt"
+                  required
+                  defaultValue={values.heroImageAlt ?? post?.heroImageAlt}
+                  hint="Alt text: what the image shows."
+                  error={errors.heroImageAlt}
+                />
+                <ImagePicker
+                  name="cardImage"
+                  label="Card image"
+                  optional
+                  hint="Shown on blog cards. Uses the main image if empty."
+                  initial={post && post.cardImage.src !== post.heroImage.src ? post.cardImage : undefined}
+                />
+                <input type="hidden" name="cardImageAlt" value={post?.cardImageAlt ?? ""} />
+              </div>
+            </Card>
+
+            <Card title="SEO" description="How the post appears in Google and when shared.">
+              <div className="p-4">
+                <SeoFields
+                  initial={post?.seo}
+                  fallbackTitle={title}
+                  fallbackDescription={description}
+                  slug={slug}
+                  errors={errors}
+                  imagePicker={
+                    <ImagePicker
+                      name="seoImage"
+                      label="Social share image"
+                      optional
+                      hint="Shown on WhatsApp, Facebook, X and LinkedIn. Uses the main image if empty. Best at 1200 × 630."
+                      initial={post?.seo?.ogImage ?? undefined}
+                    />
+                  }
+                />
+              </div>
+            </Card>
           </div>
         </div>
       </PageBody>
@@ -251,25 +228,11 @@ function ImagePicker({ name, label, initial, optional, hint, error }: ImagePicke
 
   async function upload(file: File) {
     setUploadError(undefined);
-    if (file.size > MAX_IMAGE_BYTES) {
-      setUploadError("Images can be up to 4 MB. Compress it on the home page first.");
-      return;
-    }
     setUploading(true);
-    try {
-      const { width, height } = await measure(file);
-      const data = new FormData();
-      data.set("file", file);
-      data.set("width", String(width));
-      data.set("height", String(height));
-      const result = await uploadBlogImage(data);
-      if (result.image) setImage(result.image);
-      else setUploadError(result.error);
-    } catch {
-      setUploadError("Couldn't read this image. Try a JPG, PNG or WebP.");
-    } finally {
-      setUploading(false);
-    }
+    const result = await uploadImageFile(file);
+    setUploading(false);
+    if (result.image) setImage(result.image);
+    else setUploadError(result.error);
   }
 
   return (
@@ -289,7 +252,7 @@ function ImagePicker({ name, label, initial, optional, hint, error }: ImagePicke
       <input type="hidden" name={name} value={image ? JSON.stringify(image) : ""} />
       <label
         htmlFor={id}
-        className={`relative grid aspect-[16/9] cursor-pointer place-items-center overflow-hidden rounded-xl border border-dashed bg-surface text-center text-sm text-subtle transition-colors hover:border-primary ${
+        className={`relative grid aspect-[16/9] cursor-pointer place-items-center overflow-hidden rounded-[6px] border border-dashed bg-surface text-center text-sm text-subtle transition-colors hover:border-primary ${
           message ? "border-danger" : "border-line-strong"
         }`}
       >
@@ -328,14 +291,4 @@ function ImagePicker({ name, label, initial, optional, hint, error }: ImagePicke
       {message ? <p className="mt-1.5 text-sm text-danger">{message}</p> : hint && !image && <p className="mt-1.5 text-sm text-faint">{hint}</p>}
     </div>
   );
-}
-
-function measure(file: File): Promise<{ width: number; height: number }> {
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.src = url;
-  return img
-    .decode()
-    .then(() => ({ width: img.naturalWidth, height: img.naturalHeight }))
-    .finally(() => URL.revokeObjectURL(url));
 }

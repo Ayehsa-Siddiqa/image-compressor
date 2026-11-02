@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PostEditor } from "@/components/admin/post-editor";
 import { PageSkeleton } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/admin/session";
-import { blocksToMarkdown } from "@/lib/blog/markdown";
+import { blocksToEditorContent } from "@/lib/blog/html";
 import { getPostById } from "@/lib/blog/posts";
 
 export const metadata: Metadata = { title: "Edit post" };
@@ -22,5 +22,14 @@ async function EditPost({ params, searchParams }: PageProps<"/dashboard/posts/[i
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const post = await getPostById(id);
   if (!post) notFound();
-  return <PostEditor post={post} initialBody={blocksToMarkdown(post.body)} created={query.created === "1"} />;
+  // Posts written before the rich text editor (e.g. the imported ones) are converted when opened.
+  const legacy = post.contentHtml ? null : blocksToEditorContent(post.body);
+  return (
+    <PostEditor
+      post={post}
+      initialHtml={post.contentHtml ?? legacy!.html}
+      initialFaq={post.faq ?? legacy?.faq ?? null}
+      created={query.created === "1"}
+    />
+  );
 }

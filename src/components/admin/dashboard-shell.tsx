@@ -81,7 +81,7 @@ export function DashboardShell({ admin, children }: { admin: Admin; children: Re
 
   return (
     <MobileSidebar.Provider value={setMobileOpen}>
-      <div className="flex h-dvh bg-surface text-ink">
+      <div className="flex h-dvh overflow-hidden bg-surface text-ink">
         {mobileOpen && <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs sm:hidden" onClick={() => setMobileOpen(false)} aria-hidden />}
 
         <aside
@@ -157,7 +157,7 @@ export function DashboardShell({ admin, children }: { admin: Admin; children: Re
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col sm:py-3 sm:pe-3">
-          <main id="main" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card sm:rounded-[8px] sm:border sm:border-line">
+          <main id="main" className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-card sm:rounded-[8px] sm:border sm:border-line">
             {children}
           </main>
         </div>

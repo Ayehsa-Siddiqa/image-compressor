@@ -35,8 +35,14 @@ create table if not exists blog_posts (
   card_image_alt text not null default '',
   hero_image jsonb not null,
   hero_image_alt text not null,
-  -- ArticleBlock[] (see src/content/blogs.ts)
+  -- Article as sanitised HTML from the dashboard's rich text editor.
+  content_html text,
+  -- Legacy ArticleBlock[] (see src/content/blogs.ts), used only when content_html is empty.
   body jsonb not null default '[]',
+  -- Optional FAQ section: { "title", "subtitle", "items": [{ "question", "answer" }] }
+  faq jsonb,
+  -- { "title", "description", "keywords": [], "canonical", "ogImage": { src, width, height }, "noindex" }
+  seo jsonb not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

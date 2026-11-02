@@ -35,7 +35,29 @@ export interface BlogPost {
   cardImageAlt: string;
   heroImage: BlogImage;
   heroImageAlt: string;
+  /** Blocks for the built-in posts (and posts saved before the rich text editor). */
   body: ArticleBlock[];
+  /** Sanitised article HTML from the dashboard editor; shown instead of `body` when present. */
+  contentHtml?: string | null;
+  /** FAQ shown after the article (also published as FAQ structured data). */
+  faq?: PostFaq | null;
+  seo?: PostSeo;
+}
+
+export interface PostFaq {
+  title: string;
+  subtitle: string;
+  items: FaqItem[];
+}
+
+/** Per-post search and social settings; empty fields fall back to the post's own title, description and image. */
+export interface PostSeo {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  canonical?: string;
+  ogImage?: BlogImage | null;
+  noindex?: boolean;
 }
 
 const howToCompress: BlogPost = {
