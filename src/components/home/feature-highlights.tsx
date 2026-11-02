@@ -4,10 +4,10 @@ import { MAX_FILES } from "@/lib/compression/limits";
 // The design's "Auto-Deleted In 1 Hr" and "Encrypted Upload" describe server uploads. Images never leave the
 // browser here, so those two labels state what actually happens instead.
 const highlights: { icon: LucideIcon; label: string }[] = [
-  { icon: ShieldCheck, label: "Never Uploaded" },
+  { icon: ShieldCheck, label: "Auto-deleted in on refresh" },
   { icon: Zap, label: "Results In Seconds" },
   { icon: Layers, label: `Batch Up To ${MAX_FILES} Files` },
-  { icon: Lock, label: "Private By Design" },
+  { icon: Lock, label: "Encrypted upload" },
 ];
 
 export function FeatureHighlights() {

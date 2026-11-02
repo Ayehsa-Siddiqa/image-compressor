@@ -9,7 +9,7 @@ import { formatBytes } from "@/lib/format";
 
 interface AdvancedOptionsProps {
   item: ImageItem;
-  /** Settings currently applied to all images. */
+  /** Settings currently applied to this image. */
   settings: Settings;
   busy: boolean;
   onApply: (settings: Settings) => void;
@@ -25,10 +25,11 @@ export function AdvancedOptions({ item, settings, busy, onApply }: AdvancedOptio
   const [estimate, setEstimate] = useState<Estimate | null>(null);
 
   const isSvg = item.format === "svg";
-  const key = `${item.id}:${quality}:${output}`;
+  const key = `${item.id}:${quality}:${output}:${item.rotation}`;
   const current = item.output;
   // The already-compressed result answers the estimate when the draft matches the applied settings.
-  const isKnown = !!current && current.settings.quality === quality && current.settings.output === output;
+  const isKnown =
+    !!current && current.settings.quality === quality && current.settings.output === output && current.rotation === item.rotation;
   const known = isKnown ? { size: current.encodedSize, format: current.format } : null;
 
   // Estimate by actually encoding the selected image with the draft settings (debounced, off the main thread).
@@ -36,7 +37,7 @@ export function AdvancedOptions({ item, settings, busy, onApply }: AdvancedOptio
     if (!open || isKnown) return;
     let stale = false;
     const timer = setTimeout(() => {
-      compressImage({ file: item.file, format: item.format, quality, output, estimateOnly: true })
+      compressImage({ file: item.file, format: item.format, quality, output, rotation: item.rotation, estimateOnly: true })
         .then(({ blob, format }) => !stale && setEstimate({ key, size: blob.size, format }))
         .catch((error: Error) => !stale && setEstimate({ key, error: error.message }));
     }, 400);
@@ -44,7 +45,7 @@ export function AdvancedOptions({ item, settings, busy, onApply }: AdvancedOptio
       stale = true;
       clearTimeout(timer);
     };
-  }, [open, isKnown, key, item.file, item.format, quality, output]);
+  }, [open, isKnown, key, item.file, item.format, item.rotation, quality, output]);
 
   const result = known ?? (estimate?.key === key && "size" in estimate ? estimate : null);
   const failure = !known && estimate?.key === key && "error" in estimate ? estimate.error : null;

@@ -9,9 +9,12 @@ export function BlogCard({ post, headingLevel = "h3" }: { post: BlogPost; headin
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-card shadow-card transition-shadow duration-200 hover:shadow-[0_12px_32px_rgb(17_17_17/0.08)]">
       <Link href={href} tabIndex={-1} aria-hidden className="block overflow-hidden">
         <Image
-          src={post.cardImage}
+          src={post.cardImage.src}
+          width={post.cardImage.width}
+          height={post.cardImage.height}
           alt=""
-          placeholder="blur"
+          placeholder={post.cardImage.blurDataURL ? "blur" : "empty"}
+          blurDataURL={post.cardImage.blurDataURL}
           sizes="(min-width: 1024px) 410px, (min-width: 640px) 50vw, 100vw"
           className="aspect-[410/259] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />

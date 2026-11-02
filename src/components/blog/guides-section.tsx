@@ -1,4 +1,5 @@
-import { blogPosts, type BlogPost } from "@/content/blogs";
+import type { BlogPost } from "@/content/blogs";
+import { getPublishedPosts } from "@/lib/blog/posts";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { BlogCard } from "./blog-card";
 import { CardCarousel } from "./card-carousel";
@@ -6,16 +7,18 @@ import { CardCarousel } from "./card-carousel";
 interface GuidesSectionProps {
   title?: string;
   eyebrow?: string;
+  /** Defaults to every published post. */
   posts?: BlogPost[];
   tone?: "glow" | "surface";
 }
 
-export function GuidesSection({
+export async function GuidesSection({
   title = "Image Compression Guides",
   eyebrow = "Blogs",
-  posts = blogPosts,
+  posts,
   tone = "glow",
 }: GuidesSectionProps) {
+  posts ??= await getPublishedPosts();
   if (posts.length === 0) return null;
   return (
     <section

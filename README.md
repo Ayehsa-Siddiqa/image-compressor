@@ -11,6 +11,18 @@ npm run build && npm start   # production
 npm run lint
 ```
 
+## Admin dashboard (blog)
+
+`/dashboard` (the admin dashboard) lets admins write, edit, publish, unpublish and delete blog posts, upload their images, and manage admin accounts. Posts are stored in Supabase (Postgres + Storage). Without the database connected, the site shows the built-in posts from `src/content/blogs.ts`.
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In **SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql). It creates the tables and the public `blog-images` storage bucket.
+3. Copy `.env.example` to `.env.local` and fill in `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (**Project Settings → API**). Add the same two variables on your host (e.g. Vercel → Settings → Environment Variables). The service-role key is a secret: never expose it to the browser.
+4. Create the first admin: `npm run admin:create -- you@example.com "Your Name"` (asks for a password).
+5. Restart `npm run dev`, sign in at `/dashboard/login`, and click **Import the 3 existing posts** to move the current posts into the database. The public blog then shows only published database posts.
+
+Saving in the dashboard updates the public pages straight away (no rebuild). Article bodies use simple Markdown (`##` headings, `-` lists, `**bold**`, `[links](/path)`, and a `:::faq` block); the editor has a preview and a formatting guide. Images can be up to 4 MB.
+
 ## How compression works
 
 - Images are decoded with `createImageBitmap` and re-encoded on a canvas inside a Web Worker (`OffscreenCanvas`), falling back to the main thread in older browsers. Nothing is uploaded.
@@ -23,7 +35,7 @@ npm run lint
 
 ```
 src/
-  app/                     routes: / , /blogs , /blogs/[slug] , 404, icon
+  app/                     routes: / , /blogs , /blogs/[slug] , /dashboard (admin), 404, icon
   components/
     layout/                header, footer, logo
     compressor/            drop zone, image grid/tiles, comparison slider, size summary,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AlertCircle, Download, LoaderCircle, Plus, Shrink, X } from "lucide-react";
 import { ACCEPT_ATTRIBUTE, OUTPUT_FORMATS } from "@/lib/compression/formats";
-import type { ImageCompressorApi } from "@/lib/compression/use-image-compressor";
+import { settingsFor, type ImageCompressorApi } from "@/lib/compression/use-image-compressor";
 import { downloadBlob, zipFiles } from "@/lib/download";
 import { downloadName } from "@/lib/format";
 import { buttonClass } from "@/components/ui/button";
@@ -18,16 +18,9 @@ import { useFileDrop } from "./use-file-drop";
 export function Compressor({ api }: { api: ImageCompressorApi }) {
   const { state, selected, summary } = api;
   const addInput = useRef<HTMLInputElement>(null);
-  const replaceInput = useRef<HTMLInputElement>(null);
-  const replaceTarget = useRef<string | null>(null);
   const [zipping, setZipping] = useState(false);
   const [zipError, setZipError] = useState<string | null>(null);
   const { isDragging, dropProps } = useFileDrop(api.addFiles);
-
-  const requestReplace = useCallback((id: string) => {
-    replaceTarget.current = id;
-    replaceInput.current?.click();
-  }, []);
 
   async function downloadAll() {
     const files = summary.done.map((item) => ({
@@ -83,7 +76,7 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
             items={state.items}
             selectedId={state.selectedId}
             onSelect={api.select}
-            onReplace={requestReplace}
+            onRotate={api.rotate}
             onRemove={api.removeItem}
             onDimensions={api.setDimensions}
           />
@@ -132,14 +125,15 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
                 compressedUrl={selected.output.url}
                 width={selected.width}
                 height={selected.height}
+                rotation={selected.output.rotation}
                 name={selected.file.name}
               />
               <AdvancedOptions
                 key={selected.id}
                 item={selected}
-                settings={state.settings}
+                settings={settingsFor(selected, state.settings)}
                 busy={summary.isProcessing}
-                onApply={api.applySettings}
+                onApply={(settings) => api.applySettings(selected.id, settings)}
               />
             </div>
           )}
@@ -170,20 +164,6 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
         aria-label="Add more images"
         onChange={(event) => {
           if (event.target.files?.length) api.addFiles(Array.from(event.target.files));
-          event.target.value = "";
-        }}
-      />
-      <input
-        ref={replaceInput}
-        type="file"
-        accept={ACCEPT_ATTRIBUTE}
-        className="sr-only"
-        tabIndex={-1}
-        aria-label="Replace image"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file && replaceTarget.current) api.replaceFile(replaceTarget.current, file);
-          replaceTarget.current = null;
           event.target.value = "";
         }}
       />

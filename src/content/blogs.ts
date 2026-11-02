@@ -1,4 +1,3 @@
-import type { StaticImageData } from "next/image";
 import type { FaqItem } from "./faq";
 import compressPngFiles from "@/assets/blog/compress-png-files.webp";
 import webpVsJpgVsPng from "@/assets/blog/webp-vs-jpg-vs-png.webp";
@@ -15,6 +14,15 @@ export type ArticleBlock =
   | { type: "list"; items: Rich[] }
   | { type: "faq"; title: string; subtitle: string; items: FaqItem[] };
 
+/** A blog image: a bundled asset (which also carries a blur placeholder) or an uploaded image URL. */
+export interface BlogImage {
+  src: string;
+  width: number;
+  height: number;
+  blurDataURL?: string;
+}
+
+/** Built-in posts below are shown until a database is connected; after that, posts come from /dashboard. */
 export interface BlogPost {
   slug: string;
   /** Title used on cards. */
@@ -23,9 +31,9 @@ export interface BlogPost {
   title: string;
   description: string;
   publishedAt: string;
-  cardImage: StaticImageData;
+  cardImage: BlogImage;
   cardImageAlt: string;
-  heroImage: StaticImageData;
+  heroImage: BlogImage;
   heroImageAlt: string;
   body: ArticleBlock[];
 }
@@ -396,10 +404,6 @@ const bestLevel: BlogPost = {
 };
 
 export const blogPosts: BlogPost[] = [howToCompress, formatComparison, bestLevel];
-
-export function getPost(slug: string): BlogPost | undefined {
-  return blogPosts.find((post) => post.slug === slug);
-}
 
 export function formatPostDate(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {

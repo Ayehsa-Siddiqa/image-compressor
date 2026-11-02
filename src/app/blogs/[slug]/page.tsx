@@ -4,15 +4,18 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArticleBody } from "@/components/blog/article-body";
 import { GuidesSection } from "@/components/blog/guides-section";
-import { blogPosts, getPost } from "@/content/blogs";
+import { blogPosts as builtInPosts } from "@/content/blogs";
+import { getPublishedPost, getPublishedPosts } from "@/lib/blog/posts";
 import { siteConfig } from "@/config/site";
 
-export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+export async function generateStaticParams() {
+  const posts = await getPublishedPosts();
+  // At least one param is required; with nothing published yet, the built-in slugs simply render 404s.
+  return (posts.length > 0 ? posts : builtInPosts).map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/blogs/[slug]">): Promise<Metadata> {
-  const post = getPost((await params).slug);
+  const post = await getPublishedPost((await params).slug);
   if (!post) return {};
   return {
     title: post.title,
@@ -40,10 +43,12 @@ export default function BlogPostPage({ params }: PageProps<"/blogs/[slug]">) {
 }
 
 async function BlogPost({ params }: Pick<PageProps<"/blogs/[slug]">, "params">) {
-  const post = getPost((await params).slug);
+  const { slug } = await params;
+  const posts = await getPublishedPosts();
+  const post = posts.find((other) => other.slug === slug);
   if (!post) notFound();
 
-  const related = blogPosts.filter((other) => other.slug !== post.slug);
+  const related = posts.filter((other) => other.slug !== post.slug);
 
   return (
     <>
@@ -57,10 +62,13 @@ async function BlogPost({ params }: Pick<PageProps<"/blogs/[slug]">, "params">) 
 
           <div className="mx-auto mt-8 max-w-[896px] sm:mt-10">
             <Image
-              src={post.heroImage}
+              src={post.heroImage.src}
+              width={post.heroImage.width}
+              height={post.heroImage.height}
               alt={post.heroImageAlt}
               priority
-              placeholder="blur"
+              placeholder={post.heroImage.blurDataURL ? "blur" : "empty"}
+              blurDataURL={post.heroImage.blurDataURL}
               sizes="(min-width: 960px) 896px, 100vw"
               className="w-full rounded-xl sm:rounded-[20px]"
             />

@@ -1,3 +1,4 @@
+import type { OutputFormat } from "./formats";
 import { CompressError, type CompressJob, type EncodedImage, type WorkerResponse } from "./types";
 
 type Task = { job: CompressJob; resolve: (value: EncodedImage) => void; reject: (reason: CompressError) => void };
@@ -10,6 +11,8 @@ const waiting: Task[] = [];
 // Without workers, jobs run one at a time on the main thread so the page stays usable.
 let fallbackQueue: Promise<unknown> = Promise.resolve();
 let nextId = 0;
+/** Formats whose codecs every worker loads as soon as it starts. */
+const warmed = new Set<OutputFormat>();
 
 /** Compresses one image off the main thread when the browser allows it, otherwise on the main thread. */
 export function compressImage(job: Omit<CompressJob, "id">): Promise<EncodedImage> {
@@ -24,6 +27,24 @@ export function compressImage(job: Omit<CompressJob, "id">): Promise<EncodedImag
 /** How many images can usefully be compressed at the same time. */
 export function compressionConcurrency(): number {
   return workersSupported() ? getPoolSize() : 1;
+}
+
+/**
+ * Starts the workers and loads the codecs for these formats in the background, so compression can begin
+ * straight away instead of first downloading and compiling WebAssembly (slow on phones).
+ */
+export function warmUp(formats: Iterable<OutputFormat>) {
+  if (!workersSupported()) return;
+  const fresh = [...formats].filter((format) => !warmed.has(format));
+  if (fresh.length === 0) return;
+  for (const worker of [...idle, ...busy.keys()]) worker.postMessage({ warm: fresh });
+  fresh.forEach((format) => warmed.add(format));
+  // New workers load everything in `warmed` themselves.
+  while (busy.size + idle.length < getPoolSize()) {
+    const worker = spawn();
+    if (!worker) return;
+    idle.push(worker);
+  }
 }
 
 function runOnMainThread(job: CompressJob): Promise<EncodedImage> {
@@ -73,6 +94,7 @@ function spawn(): Worker | null {
   } catch {
     return null;
   }
+  if (warmed.size > 0) worker.postMessage({ warm: [...warmed] });
 
   worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
     const task = busy.get(worker);

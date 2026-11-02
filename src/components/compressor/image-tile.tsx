@@ -10,12 +10,12 @@ interface ImageTileProps {
   item: ImageItem;
   selected: boolean;
   onSelect: (id: string) => void;
-  onReplace: (id: string) => void;
+  onRotate: (id: string) => void;
   onRemove: (id: string) => void;
   onDimensions: (id: string, width: number, height: number) => void;
 }
 
-export const ImageTile = memo(function ImageTile({ item, selected, onSelect, onReplace, onRemove, onDimensions }: ImageTileProps) {
+export const ImageTile = memo(function ImageTile({ item, selected, onSelect, onRotate, onRemove, onDimensions }: ImageTileProps) {
   const name = item.file.name;
   const format = INPUT_FORMATS[item.format].label;
   const { status, output } = item;
@@ -48,7 +48,8 @@ export const ImageTile = memo(function ImageTile({ item, selected, onSelect, onR
           alt=""
           decoding="async"
           draggable={false}
-          className="size-full object-cover"
+          className="size-full object-cover transition-transform duration-200"
+          style={{ transform: `rotate(${item.rotation}deg)` }}
           onLoad={(event) => onDimensions(item.id, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)}
           // Unreadable files would otherwise show the browser's broken-image icon.
           onError={(event) => {
@@ -110,7 +111,7 @@ export const ImageTile = memo(function ImageTile({ item, selected, onSelect, onR
           persistent || selected ? "opacity-100" : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
         }`}
       >
-        <IconButton label={`Replace ${name}`} onClick={() => onReplace(item.id)} disabled={status === "processing"}>
+        <IconButton label={`Rotate ${name}`} onClick={() => onRotate(item.id)}>
           <RotateCw className="size-3.5" />
         </IconButton>
         <IconButton label={`Remove ${name}`} onClick={() => onRemove(item.id)}>

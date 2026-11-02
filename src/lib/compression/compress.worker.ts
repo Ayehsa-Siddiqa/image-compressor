@@ -1,10 +1,14 @@
 /// <reference lib="webworker" />
-import { encodeImage } from "./encode";
+import { encodeImage, warmUp } from "./encode";
 import { CompressError, type WorkerRequest, type WorkerResponse } from "./types";
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
 ctx.onmessage = async ({ data: job }: MessageEvent<WorkerRequest>) => {
+  if ("warm" in job) {
+    for (const format of job.warm) await warmUp(format);
+    return;
+  }
   let response: WorkerResponse;
   try {
     const encoded = await encodeImage(job);

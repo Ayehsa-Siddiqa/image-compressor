@@ -1,5 +1,8 @@
 import type { InputFormat, OutputChoice, OutputFormat } from "./formats";
 
+/** Clockwise rotation applied to the pixels before encoding. */
+export type Rotation = 0 | 90 | 180 | 270;
+
 export interface CompressJob {
   id: string;
   file: Blob;
@@ -7,6 +10,7 @@ export interface CompressJob {
   /** 1–100. For PNG this controls palette size; 100 means lossless everywhere. */
   quality: number;
   output: OutputChoice;
+  rotation?: Rotation;
   /** Skip work only needed for the final result (size estimates don't need a preview). */
   estimateOnly?: boolean;
 }
@@ -22,7 +26,8 @@ export interface EncodedImage {
   notes: string[];
 }
 
-export type WorkerRequest = CompressJob;
+/** A compression job, or a request to load codecs ahead of time (which gets no response). */
+export type WorkerRequest = CompressJob | { warm: OutputFormat[] };
 
 export type WorkerResponse =
   | ({ id: string; ok: true } & EncodedImage)

@@ -3,7 +3,6 @@
 import { useEffect, type ReactNode } from "react";
 import { useImageCompressor } from "@/lib/compression/use-image-compressor";
 import { FeatureHighlights } from "@/components/home/feature-highlights";
-import { RatingBadge } from "@/components/ui/rating-badge";
 import { CompletionPanel } from "./completion-panel";
 import { Compressor } from "./compressor";
 
@@ -63,9 +62,7 @@ export function CompressorExperience({ children, afterDownload }: CompressorExpe
             <Compressor api={api} />
           </div>
 
-          <div className="mt-10 sm:mt-12">
-            <RatingBadge />
-          </div>
+          {/* Rating badge hidden until there are real figures; restore with <RatingBadge /> in a "mt-10 sm:mt-12" wrapper. */}
           <div className="mt-10 sm:mt-16 md:mt-20">
             <FeatureHighlights />
           </div>

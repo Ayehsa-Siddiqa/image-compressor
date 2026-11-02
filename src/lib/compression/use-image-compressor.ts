@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { compressImage, compressionConcurrency } from "./client";
-import { SUPPORTED_LABEL, detectFormat, type InputFormat, type OutputChoice, type OutputFormat } from "./formats";
+import { compressImage, compressionConcurrency, warmUp } from "./client";
+import { SUPPORTED_LABEL, detectFormat, resolveOutput, type InputFormat, type OutputChoice, type OutputFormat } from "./formats";
 import { DEFAULT_QUALITY, MAX_FILE_BYTES, MAX_FILES } from "./limits";
-import { CompressError } from "./types";
+import { CompressError, type Rotation } from "./types";
 import { formatBytes } from "../format";
 
 export type ItemStatus = "pending" | "processing" | "done" | "error";
@@ -27,6 +27,7 @@ export interface CompressedOutput {
   converted: boolean;
   format: OutputFormat;
   settings: Settings;
+  rotation: Rotation;
   notes: string[];
 }
 
@@ -40,6 +41,10 @@ export interface ImageItem {
   width?: number;
   height?: number;
   status: ItemStatus;
+  /** Clockwise rotation chosen on the tile; applied to the compressed file. */
+  rotation: Rotation;
+  /** Settings chosen for this image in Advanced Options; overrides the shared settings. */
+  settings?: Settings;
   output?: CompressedOutput;
   error?: string;
 }
@@ -47,7 +52,7 @@ export interface ImageItem {
 interface State {
   items: ImageItem[];
   selectedId: string | null;
-  /** Settings new and re-compressed images are encoded with. */
+  /** Settings images are encoded with unless they have their own. */
   settings: Settings;
   /** Set once the user presses Compress; later additions are then compressed automatically. */
   started: boolean;
@@ -59,12 +64,12 @@ interface State {
 
 type Action =
   | { type: "add"; items: ImageItem[]; notices: string[] }
-  | { type: "replace"; id: string; item: ImageItem }
   | { type: "remove"; id: string; at: number }
   | { type: "clear" }
   | { type: "select"; id: string }
+  | { type: "rotate"; id: string }
   | { type: "start" }
-  | { type: "apply-settings"; settings: Settings }
+  | { type: "apply-settings"; id: string; settings: Settings }
   | { type: "processing"; id: string; at: number }
   | { type: "done"; id: string; at: number; output: CompressedOutput; width: number; height: number; originalPreviewUrl?: string }
   | { type: "error"; id: string; at: number; message: string }
@@ -106,13 +111,6 @@ function reducer(state: State, action: Action): State {
         selectedId: state.selectedId ?? action.items[0]?.id ?? null,
         notices: action.notices,
       };
-    case "replace":
-      return {
-        ...state,
-        items: state.items.map((item) => (item.id === action.id ? action.item : item)),
-        selectedId: state.selectedId === action.id ? action.item.id : state.selectedId,
-        notices: [],
-      };
     case "remove": {
       const items = state.items.filter((item) => item.id !== action.id);
       if (items.length === 0) return { ...initialState, settings: state.settings };
@@ -124,10 +122,12 @@ function reducer(state: State, action: Action): State {
       return { ...initialState, settings: state.settings };
     case "select":
       return { ...state, selectedId: action.id };
+    case "rotate":
+      return { ...state, items: update(state.items, action.id, (i) => ({ ...i, rotation: ((i.rotation + 90) % 360) as Rotation })) };
     case "start":
       return { ...state, started: true, notices: [] };
     case "apply-settings":
-      return { ...state, settings: action.settings, started: true };
+      return { ...state, items: update(state.items, action.id, (i) => ({ ...i, settings: action.settings })), started: true };
     case "processing":
       return {
         ...state,
@@ -165,13 +165,19 @@ function reducer(state: State, action: Action): State {
 
 const sameSettings = (a: Settings, b: Settings) => a.quality === b.quality && a.output === b.output;
 
-const needsWork = (item: ImageItem, settings: Settings) =>
-  item.status === "pending" || (item.status === "done" && !!item.output && !sameSettings(item.output.settings, settings));
+/** The settings an image is compressed with: its own if set in Advanced Options, otherwise the shared ones. */
+export const settingsFor = (item: ImageItem, shared: Settings) => item.settings ?? shared;
+
+const needsWork = (item: ImageItem, shared: Settings) =>
+  item.status === "pending" ||
+  (item.status === "done" &&
+    !!item.output &&
+    (!sameSettings(item.output.settings, settingsFor(item, shared)) || item.output.rotation !== item.rotation));
 
 let nextItemId = 0;
 
 function createItem(file: File, format: InputFormat): ImageItem {
-  return { id: `img-${++nextItemId}`, file, format, previewUrl: URL.createObjectURL(file), status: "pending" };
+  return { id: `img-${++nextItemId}`, file, format, previewUrl: URL.createObjectURL(file), status: "pending", rotation: 0 };
 }
 
 async function validate(file: File): Promise<{ format: InputFormat } | { error: string }> {
@@ -207,14 +213,20 @@ export function useImageCompressor() {
   // Free every object URL when the compressor unmounts.
   useEffect(() => () => stateRef.current.items.forEach(revokeItem), []);
 
+  // Load the codecs while images are being added, so pressing Compress starts encoding straight away.
+  useEffect(() => {
+    warmUp(new Set(state.items.map((item) => resolveOutput(item.format, settingsFor(item, state.settings).output, false))));
+  }, [state.items, state.settings]);
+
   // Process as many images at once as the device has workers for; re-runs whenever an image finishes or the queue changes.
   useEffect(() => {
     if (!state.started) return;
-    const settings = state.settings;
     const room = compressionConcurrency() - inFlight.current.size;
     if (room <= 0) return;
-    const ready = state.items.filter((item) => !inFlight.current.has(item.id) && needsWork(item, settings));
+    const ready = state.items.filter((item) => !inFlight.current.has(item.id) && needsWork(item, state.settings));
     for (const next of ready.slice(0, room)) {
+      const settings = settingsFor(next, state.settings);
+      const rotation = next.rotation;
       inFlight.current.add(next.id);
       dispatch({ type: "processing", id: next.id, at: Date.now() });
 
@@ -223,6 +235,7 @@ export function useImageCompressor() {
         format: next.format,
         quality: settings.quality,
         output: settings.output,
+        rotation,
         estimateOnly: !!next.originalPreviewUrl,
       })
         .then(({ blob, width, height, format, notes, originalPreview }) => {
@@ -230,8 +243,8 @@ export function useImageCompressor() {
           if (!current) return; // removed or replaced meanwhile
           const converted = format !== next.format;
           const reduced = blob.size < next.file.size;
-          // Same format and not smaller: hand back the original rather than a bigger file.
-          const kept = reduced || converted ? blob : next.file;
+          // Same format, not rotated and not smaller: hand back the original rather than a bigger file.
+          const kept = reduced || converted || rotation !== 0 ? blob : next.file;
           const output: CompressedOutput = {
             blob: kept,
             url: URL.createObjectURL(kept),
@@ -241,6 +254,7 @@ export function useImageCompressor() {
             converted,
             format,
             settings,
+            rotation,
             notes,
           };
           if (current.output) URL.revokeObjectURL(current.output.url);
@@ -279,18 +293,6 @@ export function useImageCompressor() {
     dispatch({ type: "add", items, notices });
   }, []);
 
-  const replaceFile = useCallback(async (id: string, file: File) => {
-    const result = await validate(file);
-    const current = stateRef.current.items.find((item) => item.id === id);
-    if (!current) return;
-    if ("error" in result) {
-      dispatch({ type: "add", items: [], notices: [result.error] });
-      return;
-    }
-    revokeItem(current);
-    dispatch({ type: "replace", id, item: createItem(file, result.format) });
-  }, []);
-
   const removeItem = useCallback((id: string) => {
     const current = stateRef.current.items.find((item) => item.id === id);
     if (current) revokeItem(current);
@@ -305,17 +307,17 @@ export function useImageCompressor() {
   const actions = useMemo(
     () => ({
       addFiles,
-      replaceFile,
       removeItem,
       clear,
       select: (id: string) => dispatch({ type: "select", id }),
+      rotate: (id: string) => dispatch({ type: "rotate", id }),
       start: () => dispatch({ type: "start" }),
-      applySettings: (settings: Settings) => dispatch({ type: "apply-settings", settings }),
+      applySettings: (id: string, settings: Settings) => dispatch({ type: "apply-settings", id, settings }),
       setDimensions: (id: string, width: number, height: number) => dispatch({ type: "dimensions", id, width, height }),
       finish: () => dispatch({ type: "finish" }),
       dismissNotices: () => dispatch({ type: "dismiss-notices" }),
     }),
-    [addFiles, replaceFile, removeItem, clear],
+    [addFiles, removeItem, clear],
   );
 
   const summary = useMemo(() => {

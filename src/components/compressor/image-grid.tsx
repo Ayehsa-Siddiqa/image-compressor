@@ -7,7 +7,7 @@ interface ImageGridProps {
   items: ImageItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onReplace: (id: string) => void;
+  onRotate: (id: string) => void;
   onRemove: (id: string) => void;
   onDimensions: (id: string, width: number, height: number) => void;
 }

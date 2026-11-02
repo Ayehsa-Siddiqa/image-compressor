@@ -1,17 +1,21 @@
 import { decodeRaster, canvasEncode } from "./decode";
 import { OUTPUT_FORMATS, resolveOutput, type OutputFormat } from "./formats";
-import { CompressError, type CompressJob, type EncodedImage } from "./types";
+import { DEFAULT_QUALITY } from "./limits";
+import { CompressError, type CompressJob, type EncodedImage, type Rotation } from "./types";
 
 /**
  * Decodes an image and re-encodes it with high-efficiency codecs, entirely in the browser:
  * MozJPEG for JPG, libwebp for WebP, libavif for AVIF, palette reduction + oxipng for PNG and SVGO for SVG.
  * Codecs are WebAssembly modules loaded on first use; if one can't load, the browser's encoder is used.
- * Pixel dimensions never change.
+ * Pixel dimensions never change, except that rotating by 90° or 270° swaps width and height.
  */
 export async function encodeImage(job: CompressJob): Promise<EncodedImage> {
   if (job.format === "svg") return optimizeSvg(job.file);
 
-  const { image, hasAlpha, preview } = await decodeRaster(job.file, job.format, !job.estimateOnly);
+  const decoded = await decodeRaster(job.file, job.format, !job.estimateOnly);
+  const { hasAlpha, preview } = decoded;
+  // The preview shows the original, so it stays unrotated.
+  const image = rotate(decoded.image, job.rotation ?? 0);
   // job.format isn't SVG here, so the output is always a raster format.
   const format = resolveOutput(job.format, job.output, hasAlpha) as Exclude<OutputFormat, "svg">;
   const notes: string[] = [];
@@ -30,6 +34,16 @@ export async function encodeImage(job: CompressJob): Promise<EncodedImage> {
     originalPreview: preview,
     notes,
   };
+}
+
+/** Loads and initialises a format's codec ahead of time by encoding a single pixel. Never throws. */
+export async function warmUp(format: OutputFormat): Promise<void> {
+  try {
+    if (format === "svg") await import("svgo/browser");
+    else await encodeRaster(format, new ImageData(1, 1), DEFAULT_QUALITY);
+  } catch {
+    // the real job will load the codec again and report any problem
+  }
 }
 
 async function encodeRaster(format: Exclude<OutputFormat, "svg">, image: ImageData, quality: number) {
@@ -160,6 +174,22 @@ async function checkedCanvasEncode(image: ImageData, mime: string, quality: numb
     throw new CompressError(`Your browser can't save ${mime.split("/")[1].toUpperCase()} images. Try Chrome, Edge or Firefox.`, "unsupported-encoder");
   }
   return blob;
+}
+
+function rotate(image: ImageData, rotation: Rotation): ImageData {
+  if (rotation === 0) return image;
+  const { width: w, height: h } = image;
+  const out = rotation === 180 ? new ImageData(w, h) : new ImageData(h, w);
+  // One 32-bit word per RGBA pixel.
+  const src = new Uint32Array(image.data.buffer, image.data.byteOffset, w * h);
+  const dst = new Uint32Array(out.data.buffer);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const to = rotation === 90 ? x * h + (h - 1 - y) : rotation === 180 ? (h - 1 - y) * w + (w - 1 - x) : (w - 1 - x) * h + y;
+      dst[to] = src[y * w + x];
+    }
+  }
+  return out;
 }
 
 function flattenOnWhite({ data }: ImageData) {
