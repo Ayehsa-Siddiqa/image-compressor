@@ -11,7 +11,7 @@ import type { BlogImage } from "@/content/blogs";
 import type { AdminPost } from "@/lib/blog/posts";
 import { ArticleBody } from "@/components/blog/article-body";
 import { FormAlert, TextAreaField, TextField } from "@/components/forms/fields";
-import { PageBody, PageHeader, dashButton } from "./ui";
+import { PageBody, PageHeader, dashButton, iconButton } from "./ui";
 
 const slugify = (title: string) =>
   title
@@ -59,7 +59,7 @@ export function PostEditor({ post, initialBody = "", created }: PostEditorProps)
         subtitle={post ? post.title : undefined}
         actions={
           <>
-            <Link href="/dashboard" className={dashButton("secondary", "icon")} aria-label="All posts" title="All posts">
+            <Link href="/dashboard" className={iconButton("default", "size-10 border border-line")} aria-label="All posts" title="All posts">
               <ArrowLeft className="size-3.5" aria-hidden />
             </Link>
             <select
@@ -67,13 +67,13 @@ export function PostEditor({ post, initialBody = "", created }: PostEditorProps)
               aria-label="Status"
               value={status}
               onChange={(event) => setStatus(event.target.value as typeof status)}
-              className="h-[33px] rounded-[6px] border border-line bg-card px-2 text-xs font-medium text-ink focus:border-primary focus:outline-none"
+              className="h-10 rounded-[6px] border border-line bg-card px-3 text-sm font-medium text-ink focus:border-primary focus:outline-none"
             >
               <option value="draft">Draft (hidden)</option>
               <option value="published">Published</option>
             </select>
             <button type="submit" className={dashButton("primary")} disabled={pending}>
-              {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Save className="size-3.5" aria-hidden />}
+              {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <Save className="size-4" aria-hidden />}
               {pending ? "Saving…" : "Save"}
             </button>
           </>

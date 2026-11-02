@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { ExternalLink, FilePlus2, FileText, House, LogOut, Menu, Moon, PanelLeft, Sun, Users, X, Zap, type LucideIcon } from "lucide-react";
+import { ExternalLink, FilePlus2, FileText, House, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Users, X, Zap, type LucideIcon } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { logoutAdmin } from "@/lib/admin/actions";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
@@ -50,9 +50,9 @@ export function MobileMenuButton() {
       type="button"
       onClick={() => setOpen(true)}
       aria-label="Open menu"
-      className="grid size-8 shrink-0 place-items-center rounded-lg text-subtle hover:bg-surface hover:text-ink sm:hidden"
+      className="grid size-9 shrink-0 place-items-center rounded-[6px] text-subtle hover:bg-surface hover:text-ink sm:hidden"
     >
-      <Menu className="size-[18px]" aria-hidden />
+      <Menu className="size-5" aria-hidden />
     </button>
   );
 }
@@ -82,48 +82,51 @@ export function DashboardShell({ admin, children }: { admin: Admin; children: Re
   return (
     <MobileSidebar.Provider value={setMobileOpen}>
       <div className="flex h-dvh bg-surface text-ink">
-        {mobileOpen && <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-xs sm:hidden" onClick={() => setMobileOpen(false)} aria-hidden />}
+        {mobileOpen && <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-xs sm:hidden" onClick={() => setMobileOpen(false)} aria-hidden />}
 
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-[80vw] max-w-[320px] flex-col bg-surface px-2 pt-2 pb-2 shadow-2xl transition-[translate,width] duration-300 sm:static sm:z-auto sm:max-w-none sm:translate-x-0 sm:shadow-none ${
+          className={`fixed inset-y-0 left-0 z-50 flex w-[80vw] max-w-[300px] flex-col bg-surface shadow-2xl transition-[translate,width] duration-300 sm:static sm:z-auto sm:max-w-none sm:translate-x-0 sm:shadow-none ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
-          } ${collapsed ? "sm:w-[52px]" : "sm:w-[230px]"}`}
+          } ${collapsed ? "sm:w-[68px]" : "sm:w-[260px]"}`}
           aria-label="Dashboard"
         >
-          <div className={`flex items-center ${narrow ? "flex-col gap-1" : "justify-between"}`}>
-            <Link href="/dashboard" className="flex min-w-0 items-center rounded-lg px-1.5 py-1 hover:bg-card" title={siteConfig.name}>
-              <span className="grid size-[25px] shrink-0 place-items-center rounded-full bg-primary text-white" aria-hidden>
-                <Zap className="size-3.5" strokeWidth={2.25} />
-              </span>
-              {!narrow && <span className="ms-1.5 max-w-[120px] truncate text-[13px] font-semibold">{siteConfig.name}</span>}
-            </Link>
+          <div className={`flex h-[60px] shrink-0 items-center px-3 ${narrow ? "justify-center" : "justify-between"}`}>
+            {!narrow && (
+              <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5 rounded-[6px] px-1.5 py-1">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-white" aria-hidden>
+                  <Zap className="size-4" strokeWidth={2.25} />
+                </span>
+                <span className="truncate text-[17px] font-bold tracking-tight">{siteConfig.name}</span>
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setCollapsed((value) => !value)}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="hidden size-8 place-items-center rounded-lg text-subtle opacity-70 hover:bg-card hover:opacity-100 sm:grid"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="hidden size-9 place-items-center rounded-[6px] text-subtle hover:bg-card hover:text-ink sm:grid"
             >
-              <PanelLeft className="size-[18px]" aria-hidden />
+              {collapsed ? <PanelLeftOpen className="size-5" aria-hidden /> : <PanelLeftClose className="size-5" aria-hidden />}
             </button>
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
-              className="grid size-8 place-items-center rounded-lg text-subtle hover:bg-card sm:hidden"
+              className="grid size-9 place-items-center rounded-[6px] text-subtle hover:bg-card sm:hidden"
             >
-              <X className="size-[18px]" aria-hidden />
+              <X className="size-5" aria-hidden />
             </button>
           </div>
 
-          <nav className="mt-1 flex-1 overflow-y-auto">
+          <nav className="flex-1 overflow-y-auto px-2 pb-3">
             {sections.map((section) => (
               <div key={section.label}>
                 {narrow ? (
-                  <div className="pt-2" />
+                  <div className="mx-3 my-3 border-t border-line" />
                 ) : (
-                  <p className="px-2.5 pt-4 pb-1 text-[11px] leading-4 font-medium tracking-wider text-subtle/70 uppercase">{section.label}</p>
+                  <p className="px-3 pt-5 pb-2 text-xs font-semibold tracking-[0.12em] text-subtle uppercase">{section.label}</p>
                 )}
-                <ul className="space-y-0.5">
+                <ul className="space-y-1">
                   {section.items.map((item) => (
                     <li key={item.href}>
                       <SideItem item={item} active={item.match(pathname)} narrow={narrow} />
@@ -134,27 +137,27 @@ export function DashboardShell({ admin, children }: { admin: Admin; children: Re
             ))}
           </nav>
 
-          <div className={`mt-2 flex items-center border-t border-line pt-2 ${narrow ? "flex-col gap-1" : "gap-1"}`}>
-            <div className={`flex min-w-0 flex-1 items-center gap-2 px-1.5 py-1 ${narrow ? "justify-center" : ""}`} title={`${admin.name} · ${admin.email}`}>
-              <span className="grid size-[25px] shrink-0 place-items-center rounded-full bg-primary-soft text-[11px] font-bold text-accent">{initials(admin.name)}</span>
+          <div className={`flex shrink-0 items-center gap-1 border-t border-line px-3 py-4 ${narrow ? "flex-col" : ""}`}>
+            <div className={`flex min-w-0 flex-1 items-center gap-2.5 ${narrow ? "justify-center" : ""}`} title={`${admin.name} · ${admin.email}`}>
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">{initials(admin.name)}</span>
               {!narrow && (
                 <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-medium">{admin.name}</span>
-                  <span className="block truncate text-[11px] text-subtle">{admin.email}</span>
+                  <span className="block truncate text-[15px] font-semibold">{admin.name}</span>
+                  <span className="block truncate text-xs text-subtle">{admin.email}</span>
                 </span>
               )}
             </div>
             <ThemeButton />
             <form action={logoutAdmin}>
-              <button type="submit" aria-label="Log out" title="Log out" className="grid size-8 place-items-center rounded-lg text-subtle hover:bg-card hover:text-danger">
-                <LogOut className="size-4" aria-hidden />
+              <button type="submit" aria-label="Log out" title="Log out" className="grid size-9 place-items-center rounded-[6px] text-subtle hover:bg-card hover:text-danger">
+                <LogOut className="size-[18px]" aria-hidden />
               </button>
             </form>
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col sm:py-2 sm:pe-2">
-          <main id="main" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card sm:rounded-[6px] sm:border sm:border-line">
+        <div className="flex min-w-0 flex-1 flex-col sm:py-3 sm:pe-3">
+          <main id="main" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card sm:rounded-[8px] sm:border sm:border-line">
             {children}
           </main>
         </div>
@@ -170,20 +173,18 @@ function SideItem({ item, active, narrow }: { item: NavItem; active: boolean; na
       href={item.href}
       target={item.external ? "_blank" : undefined}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex h-[34px] w-full items-center rounded-lg px-1 transition-colors ${
-        active ? "bg-card text-ink" : "text-subtle hover:bg-card hover:text-ink"
-      } ${narrow ? "justify-center" : ""}`}
+      className={`group relative flex h-11 w-full items-center gap-3 rounded-[8px] px-3 transition-colors ${
+        active ? "bg-card font-semibold text-ink" : "font-medium text-body hover:bg-card hover:text-ink"
+      } ${narrow ? "justify-center px-0" : ""}`}
     >
-      {active && <span className="absolute left-0 h-[60%] w-[2px] rounded-r-md bg-primary" aria-hidden />}
-      <span className="grid size-7 shrink-0 place-items-center">
-        <Icon className={`size-4 ${active ? "text-primary" : ""}`} aria-hidden />
-      </span>
+      {active && <span className="absolute left-0 h-[60%] w-[3px] rounded-r-md bg-primary" aria-hidden />}
+      <Icon className={`size-5 shrink-0 ${active ? "text-primary" : ""}`} aria-hidden />
       {narrow ? (
         <span className="pointer-events-none absolute left-full z-10 ml-2 rounded-md border border-line-strong bg-card px-3 py-2 text-xs font-medium whitespace-nowrap text-ink opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
           {item.label}
         </span>
       ) : (
-        <span className={`truncate pl-1.5 text-[13px] ${active ? "font-medium" : "font-normal"}`}>{item.label}</span>
+        <span className="truncate text-[15px]">{item.label}</span>
       )}
     </Link>
   );
@@ -200,9 +201,9 @@ function ThemeButton() {
     }
   }
   return (
-    <button type="button" onClick={toggle} aria-label="Toggle dark mode" title="Toggle dark mode" className="grid size-8 place-items-center rounded-lg text-subtle hover:bg-card hover:text-ink">
-      <Moon className="size-4 dark:hidden" aria-hidden />
-      <Sun className="hidden size-4 dark:block" aria-hidden />
+    <button type="button" onClick={toggle} aria-label="Toggle dark mode" title="Toggle dark mode" className="grid size-9 place-items-center rounded-[6px] text-subtle hover:bg-card hover:text-ink">
+      <Moon className="size-[18px] dark:hidden" aria-hidden />
+      <Sun className="hidden size-[18px] dark:block" aria-hidden />
     </button>
   );
 }

@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Download, Eye, EyeOff, LoaderCircle, Pencil, Trash2 } from "lucide-react";
+import { Download, ExternalLink, Eye, EyeOff, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import { deletePost, importBuiltInPosts, setPostStatus } from "@/lib/admin/actions";
 import type { PostStatus } from "@/lib/blog/posts";
-import { dashButton } from "./ui";
+import { dashButton, iconButton } from "./ui";
 
 export function PostActions({ id, slug, title, status }: { id: string; slug: string; title: string; status: PostStatus }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
+  const published = status === "published";
 
   const run = (action: () => Promise<{ error?: string }>) =>
     startTransition(async () => {
@@ -18,28 +19,32 @@ export function PostActions({ id, slug, title, status }: { id: string; slug: str
 
   return (
     <div className="flex flex-col items-start gap-1 md:items-end">
-      <div className="flex flex-wrap gap-1.5">
-        <Link href={`/dashboard/posts/${id}`} className={dashButton("secondary")}>
-          <Pencil className="size-3.5 text-accent" aria-hidden />
-          Edit
+      <div className="flex items-center gap-1">
+        <Link href={`/dashboard/posts/${id}`} className={iconButton()} aria-label={`Edit ${title}`} title="Edit">
+          <Pencil className="size-[18px]" aria-hidden />
         </Link>
         <button
           type="button"
-          className={dashButton("secondary")}
+          className={iconButton()}
           disabled={pending}
-          onClick={() => run(() => setPostStatus(id, status === "published" ? "draft" : "published"))}
+          aria-label={`${published ? "Unpublish" : "Publish"} ${title}`}
+          title={published ? "Unpublish (hide from the blog)" : "Publish"}
+          onClick={() => run(() => setPostStatus(id, published ? "draft" : "published"))}
         >
-          {status === "published" ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
-          {status === "published" ? "Unpublish" : "Publish"}
+          {published ? <EyeOff className="size-[18px]" aria-hidden /> : <Eye className="size-[18px]" aria-hidden />}
         </button>
-        {status === "published" && (
-          <Link href={`/blogs/${slug}`} target="_blank" className={dashButton("secondary", "icon")} aria-label={`View ${title}`} title="View on site">
-            <Eye className="size-3.5" aria-hidden />
+        {published ? (
+          <Link href={`/blogs/${slug}`} target="_blank" className={iconButton()} aria-label={`View ${title} on the site`} title="View on site">
+            <ExternalLink className="size-[18px]" aria-hidden />
           </Link>
+        ) : (
+          <span className={iconButton("default", "pointer-events-none opacity-30")} aria-hidden>
+            <ExternalLink className="size-[18px]" />
+          </span>
         )}
         <button
           type="button"
-          className={dashButton("danger", "icon")}
+          className={iconButton("danger")}
           disabled={pending}
           aria-label={`Delete ${title}`}
           title="Delete"
@@ -47,7 +52,7 @@ export function PostActions({ id, slug, title, status }: { id: string; slug: str
             if (confirm(`Delete “${title}”? This can't be undone.`)) run(() => deletePost(id));
           }}
         >
-          {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Trash2 className="size-3.5" aria-hidden />}
+          {pending ? <LoaderCircle className="size-[18px] animate-spin" aria-hidden /> : <Trash2 className="size-[18px]" aria-hidden />}
         </button>
       </div>
       {error && (
@@ -66,7 +71,7 @@ export function ImportPostsButton() {
     <div>
       <button
         type="button"
-        className={dashButton("primary", "md")}
+        className={dashButton("primary")}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {

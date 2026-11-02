@@ -5,7 +5,7 @@ import { LoaderCircle, Trash2, UserPlus } from "lucide-react";
 import { createAdminAccount, deleteAdminAccount } from "@/lib/admin/actions";
 import { initialFormState } from "@/lib/forms/types";
 import { FormAlert, PasswordField, TextField } from "@/components/forms/fields";
-import { dashButton } from "./ui";
+import { dashButton, iconButton } from "./ui";
 
 export function AddAdminForm() {
   const [state, formAction, pending] = useActionState(createAdminAccount, initialFormState);
@@ -28,11 +28,13 @@ export function RemoveAdminButton({ id, name }: { id: string; name: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-start gap-1">
       <button
         type="button"
-        className={dashButton("danger")}
+        className={iconButton("danger")}
         disabled={pending}
+        aria-label={`Remove ${name}`}
+        title="Remove"
         onClick={() => {
           if (!confirm(`Remove ${name}? They'll be signed out and can't sign in again.`)) return;
           startTransition(async () => {
@@ -40,8 +42,7 @@ export function RemoveAdminButton({ id, name }: { id: string; name: string }) {
           });
         }}
       >
-        {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Trash2 className="size-3.5" aria-hidden />}
-        Remove
+        {pending ? <LoaderCircle className="size-[18px] animate-spin" aria-hidden /> : <Trash2 className="size-[18px]" aria-hidden />}
       </button>
       {error && (
         <p className="text-xs text-danger" role="alert">
