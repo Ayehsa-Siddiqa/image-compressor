@@ -5,8 +5,7 @@ import { LoaderCircle, Trash2, UserPlus } from "lucide-react";
 import { createAdminAccount, deleteAdminAccount } from "@/lib/admin/actions";
 import { initialFormState } from "@/lib/forms/types";
 import { FormAlert, PasswordField, TextField } from "@/components/forms/fields";
-import { buttonClass } from "@/components/ui/button";
-import { smallButton } from "./post-actions";
+import { dashButton } from "./ui";
 
 export function AddAdminForm() {
   const [state, formAction, pending] = useActionState(createAdminAccount, initialFormState);
@@ -17,8 +16,8 @@ export function AddAdminForm() {
       <TextField label="Email" name="email" type="email" autoComplete="off" required defaultValue={state.values?.email} error={errors.email} />
       <PasswordField label="Password" name="password" autoComplete="new-password" required error={errors.password} />
       <FormAlert status={state.status} message={state.message} />
-      <button type="submit" className={buttonClass("primary", "md", "w-full")} disabled={pending}>
-        {pending ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <UserPlus className="size-5" aria-hidden />}
+      <button type="submit" className={dashButton("primary", "md", "w-full")} disabled={pending}>
+        {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <UserPlus className="size-4" aria-hidden />}
         Add admin
       </button>
     </form>
@@ -32,7 +31,7 @@ export function RemoveAdminButton({ id, name }: { id: string; name: string }) {
     <div className="flex flex-col items-end gap-1">
       <button
         type="button"
-        className={`${smallButton} text-danger hover:border-danger`}
+        className={dashButton("danger")}
         disabled={pending}
         onClick={() => {
           if (!confirm(`Remove ${name}? They'll be signed out and can't sign in again.`)) return;
@@ -45,7 +44,7 @@ export function RemoveAdminButton({ id, name }: { id: string; name: string }) {
         Remove
       </button>
       {error && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       )}

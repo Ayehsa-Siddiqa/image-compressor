@@ -5,10 +5,7 @@ import { useState, useTransition } from "react";
 import { Download, Eye, EyeOff, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 import { deletePost, importBuiltInPosts, setPostStatus } from "@/lib/admin/actions";
 import type { PostStatus } from "@/lib/blog/posts";
-import { buttonClass } from "@/components/ui/button";
-
-export const smallButton =
-  "inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm text-body transition-colors hover:bg-surface disabled:opacity-50";
+import { dashButton } from "./ui";
 
 export function PostActions({ id, slug, title, status }: { id: string; slug: string; title: string; status: PostStatus }) {
   const [pending, startTransition] = useTransition();
@@ -20,42 +17,41 @@ export function PostActions({ id, slug, title, status }: { id: string; slug: str
     });
 
   return (
-    <div className="flex flex-col items-start gap-1 sm:items-end">
-      <div className="flex flex-wrap gap-2">
-        <Link href={`/dashboard/posts/${id}`} className={smallButton}>
-          <Pencil className="size-3.5" aria-hidden />
+    <div className="flex flex-col items-start gap-1 md:items-end">
+      <div className="flex flex-wrap gap-1.5">
+        <Link href={`/dashboard/posts/${id}`} className={dashButton("secondary")}>
+          <Pencil className="size-3.5 text-accent" aria-hidden />
           Edit
         </Link>
-        {status === "published" && (
-          <Link href={`/blogs/${slug}`} target="_blank" className={smallButton}>
-            <Eye className="size-3.5" aria-hidden />
-            View
-          </Link>
-        )}
         <button
           type="button"
-          className={smallButton}
+          className={dashButton("secondary")}
           disabled={pending}
           onClick={() => run(() => setPostStatus(id, status === "published" ? "draft" : "published"))}
         >
           {status === "published" ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
           {status === "published" ? "Unpublish" : "Publish"}
         </button>
+        {status === "published" && (
+          <Link href={`/blogs/${slug}`} target="_blank" className={dashButton("secondary", "icon")} aria-label={`View ${title}`} title="View on site">
+            <Eye className="size-3.5" aria-hidden />
+          </Link>
+        )}
         <button
           type="button"
-          className={`${smallButton} text-danger hover:border-danger`}
+          className={dashButton("danger", "icon")}
           disabled={pending}
           aria-label={`Delete ${title}`}
+          title="Delete"
           onClick={() => {
             if (confirm(`Delete “${title}”? This can't be undone.`)) run(() => deletePost(id));
           }}
         >
           {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Trash2 className="size-3.5" aria-hidden />}
-          Delete
         </button>
       </div>
       {error && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       )}
@@ -70,7 +66,7 @@ export function ImportPostsButton() {
     <div>
       <button
         type="button"
-        className={buttonClass("primary")}
+        className={dashButton("primary", "md")}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -78,11 +74,11 @@ export function ImportPostsButton() {
           })
         }
       >
-        {pending ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Download className="size-5" aria-hidden />}
+        {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <Download className="size-4" aria-hidden />}
         Import the 3 existing posts
       </button>
       {error && (
-        <p className="mt-2 text-sm text-danger" role="alert">
+        <p className="mt-2 text-xs text-danger" role="alert">
           {error}
         </p>
       )}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useId, useMemo, useState } from "react";
-import { ArrowLeft, ImagePlus, LoaderCircle, Save, X } from "lucide-react";
+import { ArrowLeft, FileText, ImagePlus, LoaderCircle, Save, X } from "lucide-react";
 import { savePost, uploadBlogImage } from "@/lib/admin/actions";
 import { MAX_IMAGE_BYTES } from "@/lib/blog/limits";
 import { markdownToBlocks } from "@/lib/blog/markdown";
@@ -11,7 +11,7 @@ import type { BlogImage } from "@/content/blogs";
 import type { AdminPost } from "@/lib/blog/posts";
 import { ArticleBody } from "@/components/blog/article-body";
 import { FormAlert, TextAreaField, TextField } from "@/components/forms/fields";
-import { buttonClass } from "@/components/ui/button";
+import { PageBody, PageHeader, dashButton } from "./ui";
 
 const slugify = (title: string) =>
   title
@@ -50,180 +50,184 @@ export function PostEditor({ post, initialBody = "", created }: PostEditorProps)
   const preview = useMemo(() => (tab === "preview" ? markdownToBlocks(body) : null), [tab, body]);
 
   return (
-    <form action={formAction} noValidate className="space-y-6">
+    <form action={formAction} noValidate className="flex min-h-0 flex-1 flex-col">
       <input type="hidden" name="id" value={post?.id ?? ""} />
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-[15px] text-accent hover:underline">
-          <ArrowLeft className="size-4" aria-hidden />
-          All posts
-        </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-[15px] text-body">
-            Status
+      <PageHeader
+        title={post ? "Edit post" : "New post"}
+        icon={FileText}
+        subtitle={post ? post.title : undefined}
+        actions={
+          <>
+            <Link href="/dashboard" className={dashButton("secondary", "icon")} aria-label="All posts" title="All posts">
+              <ArrowLeft className="size-3.5" aria-hidden />
+            </Link>
             <select
               name="status"
+              aria-label="Status"
               value={status}
               onChange={(event) => setStatus(event.target.value as typeof status)}
-              className="h-11 rounded-[10px] border border-line-strong bg-card px-3 text-base text-ink-2 focus:border-primary focus:outline-none"
+              className="h-[33px] rounded-[6px] border border-line bg-card px-2 text-xs font-medium text-ink focus:border-primary focus:outline-none"
             >
               <option value="draft">Draft (hidden)</option>
               <option value="published">Published</option>
             </select>
-          </label>
-          <button type="submit" className={buttonClass("primary")} disabled={pending}>
-            {pending ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : <Save className="size-5" aria-hidden />}
-            {pending ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </div>
+            <button type="submit" className={dashButton("primary")} disabled={pending}>
+              {pending ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : <Save className="size-3.5" aria-hidden />}
+              {pending ? "Saving…" : "Save"}
+            </button>
+          </>
+        }
+      />
 
-      <FormAlert status={state.status} message={state.message} />
+      <PageBody>
+        <FormAlert status={state.status} message={state.message} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-5 rounded-2xl border border-line bg-card p-5 shadow-card sm:p-6">
-          <TextField
-            label="Title"
-            name="title"
-            required
-            value={title}
-            onChange={(event) => {
-              setTitle(event.target.value);
-              if (!slugTouched) setSlug(slugify(event.target.value));
-            }}
-            error={errors.title}
-          />
-          <TextField
-            label="URL slug"
-            name="slug"
-            required
-            value={slug}
-            onChange={(event) => {
-              setSlugTouched(true);
-              setSlug(event.target.value.toLowerCase().replace(/\s+/g, "-"));
-            }}
-            hint={`Address: /blogs/${slug || "…"}`}
-            error={errors.slug}
-          />
-          <TextAreaField
-            label="Description"
-            name="description"
-            required
-            maxLength={300}
-            defaultValue={values.description ?? post?.description}
-            hint="One or two sentences. Shown in search results and link previews."
-            error={errors.description}
-            className="min-h-[96px]"
-          />
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-5 rounded-[6px] border border-line bg-card p-4">
+            <TextField
+              label="Title"
+              name="title"
+              required
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                if (!slugTouched) setSlug(slugify(event.target.value));
+              }}
+              error={errors.title}
+            />
+            <TextField
+              label="URL slug"
+              name="slug"
+              required
+              value={slug}
+              onChange={(event) => {
+                setSlugTouched(true);
+                setSlug(event.target.value.toLowerCase().replace(/\s+/g, "-"));
+              }}
+              hint={`Address: /blogs/${slug || "…"}`}
+              error={errors.slug}
+            />
+            <TextAreaField
+              label="Description"
+              name="description"
+              required
+              maxLength={300}
+              defaultValue={values.description ?? post?.description}
+              hint="One or two sentences. Shown in search results and link previews."
+              error={errors.description}
+              className="min-h-[96px]"
+            />
 
-          <div>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-bold text-ink-2 sm:text-[15px]" id="body-label">
-                Article
-              </span>
-              <div className="flex rounded-lg border border-line p-0.5 text-sm" role="tablist" aria-label="Article editor">
-                {(["write", "preview"] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === value}
-                    onClick={() => setTab(value)}
-                    className={`rounded-md px-3 py-1 capitalize ${tab === value ? "bg-primary-soft font-bold text-accent" : "text-body"}`}
-                  >
-                    {value}
-                  </button>
-                ))}
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-bold text-ink-2 sm:text-[15px]" id="body-label">
+                  Article
+                </span>
+                <div className="flex rounded-lg border border-line p-0.5 text-sm" role="tablist" aria-label="Article editor">
+                  {(["write", "preview"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === value}
+                      onClick={() => setTab(value)}
+                      className={`rounded-md px-3 py-1 capitalize ${tab === value ? "bg-primary-soft font-bold text-accent" : "text-body"}`}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
               </div>
+              {/* The textarea stays mounted (hidden in preview) so its value is always submitted. */}
+              <textarea
+                name="body"
+                aria-labelledby="body-label"
+                aria-invalid={errors.body ? true : undefined}
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                hidden={tab === "preview"}
+                spellCheck
+                className={`block min-h-[460px] w-full resize-y rounded-[10px] border bg-card px-4 py-3 font-mono text-sm leading-relaxed text-ink-2 focus:border-primary focus:shadow-[0_0_0_3px_rgb(37_99_235/0.15)] focus:outline-none ${
+                  errors.body ? "border-danger" : "border-line-strong"
+                }`}
+                placeholder={"Intro paragraph…\n\n## A section heading\n\nSome text with **bold** and a [link](/blogs).\n\n- A list item\n- Another item"}
+              />
+              {tab === "preview" && preview && (
+                <div className="min-h-[460px] rounded-[10px] border border-line-strong bg-card px-5 py-4">
+                  {preview.error ? (
+                    <p className="text-danger">{preview.error}</p>
+                  ) : preview.blocks.length === 0 ? (
+                    <p className="text-faint">Nothing to preview yet.</p>
+                  ) : (
+                    <ArticleBody blocks={preview.blocks} />
+                  )}
+                </div>
+              )}
+              {errors.body && <p className="mt-1.5 text-sm text-danger">{errors.body}</p>}
+              <details className="mt-3 text-sm text-subtle">
+                <summary className="cursor-pointer text-accent">Formatting help</summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li>
+                    <code>## Heading</code> for a section, <code>### Heading</code> for a sub-heading
+                  </li>
+                  <li>Lines next to each other form one paragraph group; leave a blank line to add space before the next one</li>
+                  <li>
+                    <code>- item</code> on consecutive lines makes a bulleted list
+                  </li>
+                  <li>
+                    <code>**bold**</code> and <code>[link text](/blogs/some-post)</code> inside any text
+                  </li>
+                  <li>
+                    FAQ: <code>:::faq Title</code>, then a subtitle line, then <code>Q: …</code> / <code>A: …</code> pairs, and a closing <code>:::</code>
+                  </li>
+                </ul>
+              </details>
             </div>
-            {/* The textarea stays mounted (hidden in preview) so its value is always submitted. */}
-            <textarea
-              name="body"
-              aria-labelledby="body-label"
-              aria-invalid={errors.body ? true : undefined}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              hidden={tab === "preview"}
-              spellCheck
-              className={`block min-h-[460px] w-full resize-y rounded-[10px] border bg-card px-4 py-3 font-mono text-sm leading-relaxed text-ink-2 focus:border-primary focus:shadow-[0_0_0_3px_rgb(37_99_235/0.15)] focus:outline-none ${
-                errors.body ? "border-danger" : "border-line-strong"
-              }`}
-              placeholder={"Intro paragraph…\n\n## A section heading\n\nSome text with **bold** and a [link](/blogs).\n\n- A list item\n- Another item"}
-            />
-            {tab === "preview" && preview && (
-              <div className="min-h-[460px] rounded-[10px] border border-line-strong bg-card px-5 py-4">
-                {preview.error ? (
-                  <p className="text-danger">{preview.error}</p>
-                ) : preview.blocks.length === 0 ? (
-                  <p className="text-faint">Nothing to preview yet.</p>
-                ) : (
-                  <ArticleBody blocks={preview.blocks} />
-                )}
-              </div>
-            )}
-            {errors.body && <p className="mt-1.5 text-sm text-danger">{errors.body}</p>}
-            <details className="mt-3 text-sm text-subtle">
-              <summary className="cursor-pointer text-accent">Formatting help</summary>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                <li>
-                  <code>## Heading</code> for a section, <code>### Heading</code> for a sub-heading
-                </li>
-                <li>Lines next to each other form one paragraph group; leave a blank line to add space before the next one</li>
-                <li>
-                  <code>- item</code> on consecutive lines makes a bulleted list
-                </li>
-                <li>
-                  <code>**bold**</code> and <code>[link text](/blogs/some-post)</code> inside any text
-                </li>
-                <li>
-                  FAQ: <code>:::faq Title</code>, then a subtitle line, then <code>Q: …</code> / <code>A: …</code> pairs, and a closing <code>:::</code>
-                </li>
-              </ul>
-            </details>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="space-y-5 rounded-2xl border border-line bg-card p-5 shadow-card sm:p-6">
-            <TextField
-              label="Publish date"
-              name="publishedAt"
-              type="date"
-              required
-              defaultValue={values.publishedAt ?? post?.publishedAt ?? today()}
-              error={errors.publishedAt}
-            />
-            <TextField
-              label="Card title"
-              name="cardTitle"
-              optional
-              defaultValue={values.cardTitle ?? (post && post.cardTitle !== post.title ? post.cardTitle : "")}
-              hint="Shorter title for blog cards. Uses the title if empty."
-              error={errors.cardTitle}
-            />
           </div>
 
-          <div className="space-y-5 rounded-2xl border border-line bg-card p-5 shadow-card sm:p-6">
-            <ImagePicker name="heroImage" label="Main image" initial={post?.heroImage} error={errors.heroImage} />
-            <TextField
-              label="Main image description"
-              name="heroImageAlt"
-              required
-              defaultValue={values.heroImageAlt ?? post?.heroImageAlt}
-              hint="Alt text: what the image shows."
-              error={errors.heroImageAlt}
-            />
-            <ImagePicker
-              name="cardImage"
-              label="Card image"
-              optional
-              hint="Shown on blog cards. Uses the main image if empty."
-              initial={post && post.cardImage.src !== post.heroImage.src ? post.cardImage : undefined}
-            />
-            <input type="hidden" name="cardImageAlt" value={post?.cardImageAlt ?? ""} />
+          <div className="space-y-4">
+            <div className="space-y-5 rounded-[6px] border border-line bg-card p-4">
+              <TextField
+                label="Publish date"
+                name="publishedAt"
+                type="date"
+                required
+                defaultValue={values.publishedAt ?? post?.publishedAt ?? today()}
+                error={errors.publishedAt}
+              />
+              <TextField
+                label="Card title"
+                name="cardTitle"
+                optional
+                defaultValue={values.cardTitle ?? (post && post.cardTitle !== post.title ? post.cardTitle : "")}
+                hint="Shorter title for blog cards. Uses the title if empty."
+                error={errors.cardTitle}
+              />
+            </div>
+
+            <div className="space-y-5 rounded-[6px] border border-line bg-card p-4">
+              <ImagePicker name="heroImage" label="Main image" initial={post?.heroImage} error={errors.heroImage} />
+              <TextField
+                label="Main image description"
+                name="heroImageAlt"
+                required
+                defaultValue={values.heroImageAlt ?? post?.heroImageAlt}
+                hint="Alt text: what the image shows."
+                error={errors.heroImageAlt}
+              />
+              <ImagePicker
+                name="cardImage"
+                label="Card image"
+                optional
+                hint="Shown on blog cards. Uses the main image if empty."
+                initial={post && post.cardImage.src !== post.heroImage.src ? post.cardImage : undefined}
+              />
+              <input type="hidden" name="cardImageAlt" value={post?.cardImageAlt ?? ""} />
+            </div>
           </div>
         </div>
-      </div>
+      </PageBody>
     </form>
   );
 }
