@@ -8,7 +8,7 @@ export const homeFaq: FaqItem[] = [
   {
     question: "Does image compression affect quality?",
     answer:
-      "At the default setting (80%) most images look the same as the original. Squishly uses advanced encoders (MozJPEG, libwebp, libavif and oxipng) that find smaller encodings without extra visible loss. Set quality to 100% for fully lossless compression, where no pixel changes.",
+      "At the default setting (80%) most images look the same as the original. Toolve uses advanced encoders (MozJPEG, libwebp, libavif and oxipng) that find smaller encodings without extra visible loss. Set quality to 100% for fully lossless compression, where no pixel changes.",
   },
   {
     question: "Which file formats are supported?",
@@ -42,6 +42,6 @@ export const homeFaq: FaqItem[] = [
   {
     question: "What is the difference between lossy and lossless compression?",
     answer:
-      "Lossy compression discards detail you're unlikely to notice to make files much smaller. Lossless compression keeps every pixel but saves less space. In Squishly, quality 100% is lossless for every format. For PNG, lower quality reduces the number of colours while keeping transparency, and every PNG gets an extra lossless optimisation pass.",
+      "Lossy compression discards detail you're unlikely to notice to make files much smaller. Lossless compression keeps every pixel but saves less space. In Toolve, quality 100% is lossless for every format. For PNG, lower quality reduces the number of colours while keeping transparency, and every PNG gets an extra lossless optimisation pass.",
   },
 ];

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ContentPage, Prose } from "@/components/content/content-page";
 import { siteConfig } from "@/config/site";
 import { MAX_FILES } from "@/lib/compression/limits";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About",
   description: `${siteConfig.name} is a free image compressor that shrinks JPG, PNG, WebP, AVIF, HEIC and other images right in your browser.`,
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

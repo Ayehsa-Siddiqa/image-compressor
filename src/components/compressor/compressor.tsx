@@ -35,7 +35,7 @@ export function Compressor({ api }: { api: ImageCompressorApi }) {
     }
     setZipping(true);
     try {
-      downloadBlob(await zipFiles(files), "squishly-compressed-images.zip");
+      downloadBlob(await zipFiles(files), "toolve-compressed-images.zip");
       api.finish();
     } catch {
       setZipError("Couldn't create the ZIP file — your browser may be low on memory. Try downloading images one at a time.");

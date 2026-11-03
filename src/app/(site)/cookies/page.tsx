@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ContentPage, Prose } from "@/components/content/content-page";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Cookie Policy",
   description: `${siteConfig.name} doesn't use cookies. Learn what is stored on your device and why.`,
-};
+  path: "/cookies",
+});
 
 export default function CookiesPage() {
   return (

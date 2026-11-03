@@ -5,24 +5,41 @@
 
 export type SiteLink = { label: string; href: string | null };
 
-export type SocialNetwork = "x" | "instagram" | "facebook" | "youtube" | "linkedin";
+export type SocialNetwork = "x" | "instagram" | "facebook" | "youtube" | "linkedin" | "tiktok" | "whatsapp";
 
 /** Email address that receives messages from the contact/feedback form. Until it's set, the form is hidden. */
 const FEEDBACK_EMAIL: string | null = null;
 
-export function feedbackHref(subject = "Squishly feedback", body = ""): string | null {
+export function feedbackHref(subject = "Toolve feedback", body = ""): string | null {
   if (!FEEDBACK_EMAIL) return null;
   const query = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   return `mailto:${FEEDBACK_EMAIL}?${query}`;
 }
 
 export const siteConfig = {
-  name: "Squishly",
+  name: "Toolve",
   tagline: "The fastest way to compress images without sacrificing quality.",
   copyrightYear: 2026,
-  title: "Squishly – Compress Images Without Losing Quality",
+  title: "Toolve – Free Image Compressor: Compress JPG, PNG & WebP",
   description:
-    "Reduce JPG, PNG, WebP, AVIF, HEIC and other image file sizes in seconds while keeping excellent quality. Free, private image compression that runs entirely in your browser.",
+    "Compress JPG, PNG, WebP, AVIF and HEIC images online for free. Reduce image size by up to 90% without losing quality. Private: images never leave your browser.",
+  /** Search terms the home page targets. */
+  keywords: [
+    "image compressor",
+    "compress image",
+    "compress jpg",
+    "compress png",
+    "compress webp",
+    "reduce image size",
+    "image size reducer",
+    "online image compressor",
+    "free image compressor",
+    "compress image without losing quality",
+    "avif converter",
+    "heic to jpg",
+    "photo compressor",
+    "image optimizer",
+  ],
 
   /** Rating shown under the upload area. Values come from the design — replace with real figures. */
   rating: { value: 4.8, outOf: 5, count: 3480 },
@@ -40,12 +57,18 @@ export const siteConfig = {
     signUp: { label: "Sign Up", href: "/signup" } as SiteLink,
   },
 
+  /**
+   * Profile links, e.g. "https://www.instagram.com/toolve". Each one that is set appears in the footer
+   * and tells Google these profiles belong to the site. WhatsApp: a channel or "https://wa.me/<number>" link.
+   */
   social: {
     x: null,
     instagram: null,
     facebook: null,
     youtube: null,
     linkedin: null,
+    tiktok: null,
+    whatsapp: null,
   } as Record<SocialNetwork, string | null>,
 
   footerNav: [

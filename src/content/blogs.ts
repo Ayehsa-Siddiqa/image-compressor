@@ -260,7 +260,7 @@ const howToCompress: BlogPost = {
         {
           question: "Can I compress multiple images at once?",
           answer:
-            "Many tools support batch compression. Squishly lets you add up to 100 images at a time and download them together as a ZIP file.",
+            "Many tools support batch compression. Toolve lets you add up to 100 images at a time and download them together as a ZIP file.",
         },
         {
           question: "How can I reduce an image to 100 KB?",
@@ -275,7 +275,7 @@ const howToCompress: BlogPost = {
         {
           question: "Is it safe to upload personal images to an online compressor?",
           answer:
-            "It depends on the service. Read its privacy policy to see whether files are uploaded, stored or shared. Squishly compresses images directly in your browser, so your files are never uploaded.",
+            "It depends on the service. Read its privacy policy to see whether files are uploaded, stored or shared. Toolve compresses images directly in your browser, so your files are never uploaded.",
         },
       ],
     },
@@ -357,7 +357,7 @@ const formatComparison: BlogPost = {
     {
       type: "paragraphs",
       lines: [
-        "There is no single best format. Match the format to the image, then compress it to remove the data you don't need. You can [compress JPG, PNG and WebP images](/) with Squishly directly in your browser. Each image keeps its original format, so transparency is preserved.",
+        "There is no single best format. Match the format to the image, then compress it to remove the data you don't need. You can [compress JPG, PNG and WebP images](/) with Toolve directly in your browser. Each image keeps its original format, so transparency is preserved.",
       ],
     },
   ],
@@ -412,14 +412,14 @@ const bestLevel: BlogPost = {
     {
       type: "paragraphs",
       lines: [
-        "If an image has already been heavily compressed, saving it again may barely change the size or even make it larger. Squishly detects this and keeps your original file instead of giving you a bigger one. In that case, resizing the image or choosing a different format is usually the better option.",
+        "If an image has already been heavily compressed, saving it again may barely change the size or even make it larger. Toolve detects this and keeps your original file instead of giving you a bigger one. In that case, resizing the image or choosing a different format is usually the better option.",
       ],
     },
     { type: "h2", text: "Final Thoughts" },
     {
       type: "paragraphs",
       lines: [
-        "The best compression level is the lowest one where the image still looks right for its purpose. With [Squishly](/), you can adjust the quality slider under Advanced Options, see the estimated output size, and compare before and after before you download.",
+        "The best compression level is the lowest one where the image still looks right for its purpose. With [Toolve](/), you can adjust the quality slider under Advanced Options, see the estimated output size, and compare before and after before you download.",
       ],
     },
   ],

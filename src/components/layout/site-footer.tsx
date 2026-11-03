@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { siteConfig, withHref, type SocialNetwork } from "@/config/site";
-import { LinkedinIcon, TwitterIcon } from "@/components/ui/brand-icons";
+import { socialMeta } from "@/components/ui/brand-icons";
 import { Logo } from "./logo";
 
 const columns = siteConfig.footerNav
   .map((column) => ({ ...column, links: withHref(column.links) }))
   .filter((column) => column.links.length > 0);
 
-const footerSocial: { network: SocialNetwork; label: string; Icon: typeof LinkedinIcon }[] = [
-  { network: "linkedin", label: "LinkedIn", Icon: LinkedinIcon },
-  { network: "x", label: "Twitter / X", Icon: TwitterIcon },
-];
+// Every network with a profile link; until one is set, the design's two icons are shown as placeholders.
+const configured = (Object.keys(socialMeta) as SocialNetwork[]).filter((network) => siteConfig.social[network]);
+const footerSocial = (configured.length > 0 ? configured : (["linkedin", "x"] as SocialNetwork[])).map((network) => ({
+  network,
+  ...socialMeta[network],
+}));
 
 export function SiteFooter() {
   return (
@@ -42,7 +44,7 @@ export function SiteFooter() {
           <p className="text-sm text-subtle sm:text-[15px]">
             © {siteConfig.copyrightYear} {siteConfig.name}. All Rights Reserved.
           </p>
-          <ul className="flex gap-3">
+          <ul className="flex flex-wrap gap-3">
             {footerSocial.map(({ network, label, Icon }) => {
               const href = siteConfig.social[network];
               const iconClass = "grid size-9 place-items-center rounded-full border border-body text-body";

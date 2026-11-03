@@ -62,10 +62,29 @@ export function YoutubeIcon(props: IconProps) {
   );
 }
 
+export function TiktokIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 12a4 4 0 1 0 4 4V2a5 5 0 0 0 5 5" />
+    </svg>
+  );
+}
+
+export function WhatsappIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+      <path d="M9 8.5c0 3.6 2.9 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1-.4-2-1.4-2.4-2.4l.9-1-1-2z" />
+    </svg>
+  );
+}
+
 export const socialMeta: Record<SocialNetwork, { label: string; Icon: (props: IconProps) => React.JSX.Element }> = {
   x: { label: "Twitter / X", Icon: TwitterIcon },
   instagram: { label: "Instagram", Icon: InstagramIcon },
   facebook: { label: "Facebook", Icon: FacebookIcon },
   youtube: { label: "YouTube", Icon: YoutubeIcon },
   linkedin: { label: "LinkedIn", Icon: LinkedinIcon },
+  tiktok: { label: "TikTok", Icon: TiktokIcon },
+  whatsapp: { label: "WhatsApp", Icon: WhatsappIcon },
 };

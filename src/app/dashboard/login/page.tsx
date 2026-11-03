@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import { LogoImage } from "@/components/layout/logo";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
 import { siteConfig } from "@/config/site";
 import { isDatabaseConfigured } from "@/lib/supabase";
@@ -12,10 +12,8 @@ export default function DashboardLoginPage() {
     <main id="main" className="grid min-h-dvh place-items-center bg-surface px-4 py-10">
       <div className="w-full max-w-[380px]">
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="grid size-10 place-items-center rounded-full bg-primary text-white" aria-hidden>
-            <Zap className="size-5" strokeWidth={2.25} />
-          </span>
-          <h1 className="mt-3 text-lg font-semibold tracking-tight text-ink">Sign in to {siteConfig.name}</h1>
+          <LogoImage />
+          <h1 className="mt-4 text-lg font-semibold tracking-tight text-ink">Sign in to {siteConfig.name}</h1>
           <p className="mt-0.5 text-[13px] text-subtle">Blog dashboard</p>
         </div>
         <div className="rounded-[10px] border border-line bg-card p-5 shadow-card sm:p-6">

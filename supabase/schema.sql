@@ -1,4 +1,4 @@
--- Squishly admin dashboard schema. Run once in the Supabase SQL editor (Dashboard → SQL Editor → New query).
+-- Toolve admin dashboard schema. Run once in the Supabase SQL editor (Dashboard → SQL Editor → New query).
 -- The app talks to these tables only from the server with the service-role key, so row level security is
 -- enabled with no policies: the public (anon) key can't read or write anything here.
 

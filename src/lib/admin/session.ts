@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 
-const COOKIE = "squishly_admin";
+const COOKIE = "toolve_admin";
 const SESSION_DAYS = 7;
 
 export interface Admin {

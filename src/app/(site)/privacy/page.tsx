@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ContentPage, Prose } from "@/components/content/content-page";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
   description: `How ${siteConfig.name} handles your images and data: images are compressed in your browser and never uploaded.`,
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

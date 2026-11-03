@@ -1,4 +1,4 @@
-# Squishly – Image Compressor
+# Toolve – Image Compressor
 
 A Next.js site that compresses JPG, PNG and WebP images entirely in the browser. Built from the Figma file "Product" (node 1:2).
 

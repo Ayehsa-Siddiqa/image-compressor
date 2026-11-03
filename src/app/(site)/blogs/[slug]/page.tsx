@@ -7,6 +7,8 @@ import { GuidesSection } from "@/components/blog/guides-section";
 import { blogPosts as builtInPosts, type BlogPost } from "@/content/blogs";
 import { getPublishedPost, getPublishedPosts } from "@/lib/blog/posts";
 import { siteConfig } from "@/config/site";
+import { jsonLd, organizationLd } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site-url";
 
 export async function generateStaticParams() {
   const posts = await getPublishedPosts();
@@ -35,6 +37,9 @@ export async function generateMetadata({ params }: PageProps<"/blogs/[slug]">): 
       url: `/blogs/${post.slug}`,
       publishedTime: post.publishedAt,
       siteName: siteConfig.name,
+      locale: "en_US",
+      authors: [siteConfig.name],
+      tags: seo.keywords?.length ? seo.keywords : undefined,
       images: [{ url: image.src, width: image.width, height: image.height, alt: seo.ogImage ? title : post.heroImageAlt }],
     },
     twitter: { card: "summary_large_image", title, description, images: [image.src] },
@@ -120,29 +125,42 @@ function ArticleSkeleton() {
   );
 }
 
-/** Article (and FAQ, when present) structured data for search engines. */
+/** Article, breadcrumb and (when present) FAQ structured data for search engines. */
 function structuredData(post: BlogPost): string {
   const faq = post.faq ?? post.body.find((block) => block.type === "faq");
-  const data: object[] = [
+  const url = absoluteUrl(`/blogs/${post.slug}`);
+  const image = post.seo?.ogImage ?? post.heroImage;
+  const organization = organizationLd();
+  const graph: object[] = [
+    organization,
     {
-      "@context": "https://schema.org",
       "@type": "BlogPosting",
       headline: post.seo?.title || post.title,
       description: post.seo?.description || post.description,
-      image: [(post.seo?.ogImage ?? post.heroImage).src],
+      image: { "@type": "ImageObject", url: absoluteUrl(image.src), width: image.width, height: image.height },
       datePublished: post.publishedAt,
+      dateModified: post.publishedAt,
       keywords: post.seo?.keywords?.join(", ") || undefined,
-      publisher: { "@type": "Organization", name: siteConfig.name },
-      mainEntityOfPage: `/blogs/${post.slug}`,
+      inLanguage: "en",
+      author: { "@id": organization["@id"] },
+      publisher: { "@id": organization["@id"] },
+      mainEntityOfPage: { "@type": "WebPage", "@id": url },
+      url,
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+        { "@type": "ListItem", position: 2, name: "Blogs", item: absoluteUrl("/blogs") },
+        { "@type": "ListItem", position: 3, name: post.title, item: url },
+      ],
     },
   ];
   if (faq) {
-    data.push({
-      "@context": "https://schema.org",
+    graph.push({
       "@type": "FAQPage",
       mainEntity: faq.items.map((item) => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })),
     });
   }
-  // Escape "<" so text in the JSON can't close the script tag.
-  return JSON.stringify(data).replace(/</g, "\\u003c");
+  return jsonLd({ "@context": "https://schema.org", "@graph": graph });
 }

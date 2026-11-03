@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { BlogCard } from "@/components/blog/blog-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getPublishedPosts } from "@/lib/blog/posts";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Image Compression Guides",
-  description:
-    "Learn how to compress, optimize, and manage your images for better quality, smaller file sizes, and faster websites.",
-};
+  description: "Learn how to compress, optimize, and manage your images for better quality, smaller file sizes, and faster websites.",
+  path: "/blogs",
+});
 
 export default async function BlogsPage() {
   const posts = await getPublishedPosts();

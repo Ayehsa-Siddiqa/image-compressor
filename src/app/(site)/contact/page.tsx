@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ContentPage, Prose } from "@/components/content/content-page";
 import { ContactForm } from "@/components/forms/contact-form";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact Us",
   description: `Questions, ideas or suggestions for ${siteConfig.name}? Send us a message.`,
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

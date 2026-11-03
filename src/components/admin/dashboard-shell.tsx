@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { ExternalLink, FilePlus2, FileText, House, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Users, X, Zap, type LucideIcon } from "lucide-react";
+import { ExternalLink, FilePlus2, FileText, House, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Sun, Users, X, type LucideIcon } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { logoutAdmin } from "@/lib/admin/actions";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import type { Admin } from "@/lib/admin/session";
+import { LogoImage } from "@/components/layout/logo";
 import { initials } from "./initials";
 
 interface NavItem {
@@ -92,11 +93,8 @@ export function DashboardShell({ admin, children }: { admin: Admin; children: Re
         >
           <div className={`flex h-[60px] shrink-0 items-center px-3 ${narrow ? "justify-center" : "justify-between"}`}>
             {!narrow && (
-              <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5 rounded-[6px] px-1.5 py-1">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-white" aria-hidden>
-                  <Zap className="size-4" strokeWidth={2.25} />
-                </span>
-                <span className="truncate text-[17px] font-bold tracking-tight">{siteConfig.name}</span>
+              <Link href="/dashboard" className="flex min-w-0 items-center rounded-[6px] px-1.5 py-1" aria-label={`${siteConfig.name} dashboard`}>
+                <LogoImage size="sm" />
               </Link>
             )}
             <button

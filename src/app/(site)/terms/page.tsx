@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { ContentPage, Prose } from "@/components/content/content-page";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Terms of Use",
   description: `The terms that apply when you use ${siteConfig.name}'s free image compressor.`,
-};
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Kumbh_Sans } from "next/font/google";
 import { siteConfig } from "@/config/site";
+import { siteUrl } from "@/lib/site-url";
 import { themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -13,22 +14,41 @@ const kumbhSans = Kumbh_Sans({
 });
 
 export const metadata: Metadata = {
-  // Set NEXT_PUBLIC_SITE_URL in production so social preview images resolve to absolute URLs.
-  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
+  // Makes canonical links and social preview images full URLs (see lib/site-url.ts).
+  metadataBase: new URL(siteUrl),
   title: {
     default: siteConfig.title,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  keywords: siteConfig.keywords,
   applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.name, url: siteUrl }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
+  category: "technology",
+  formatDetection: { telephone: false, email: false, address: false },
+  // Lets Google show large image previews and full snippets.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+  },
+  // Paste the codes from Google Search Console / Bing Webmaster Tools into these environment variables.
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+  },
+  appleWebApp: { title: siteConfig.name, capable: true, statusBarStyle: "default" },
   openGraph: {
     type: "website",
     siteName: siteConfig.name,
+    locale: "en_US",
     title: siteConfig.title,
     description: siteConfig.description,
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: siteConfig.title,
     description: siteConfig.description,
   },

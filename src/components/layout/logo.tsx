@@ -1,18 +1,29 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Zap } from "lucide-react";
 import { siteConfig } from "@/config/site";
 
-export function Logo({ size = "md" }: { size?: "md" | "sm" }) {
-  const md = size === "md";
+// Both files are 1792 × 377.
+const RATIO = 1792 / 377;
+const HEIGHTS = { md: 32, sm: 26 } as const;
+
+/** The wordmark: dark lettering in light mode, white lettering in dark mode. */
+export function LogoImage({ size = "md", className = "" }: { size?: keyof typeof HEIGHTS; className?: string }) {
+  const height = HEIGHTS[size];
+  const width = Math.round(height * RATIO);
+  const shared = { width, height, style: { width: "auto" } } as const;
+  const sizeClass = size === "md" ? "h-7 sm:h-8" : "h-[26px]";
   return (
-    <Link href="/" className="inline-flex items-center gap-2 rounded-full" aria-label={`${siteConfig.name} home`}>
-      <span
-        className={`grid shrink-0 place-items-center rounded-full bg-primary text-white ${md ? "size-9 sm:size-11" : "size-7"}`}
-        aria-hidden
-      >
-        <Zap className={md ? "size-4 sm:size-5" : "size-3.5"} strokeWidth={2} />
-      </span>
-      <span className={`font-bold tracking-tight text-ink ${md ? "text-lg sm:text-[22px]" : "text-base"}`}>{siteConfig.name}</span>
+    <>
+      <Image src="/toolve-light.png" alt={siteConfig.name} {...shared} className={`${sizeClass} dark:hidden ${className}`} />
+      <Image src="/toolve-dark.png" alt={siteConfig.name} {...shared} className={`${sizeClass} hidden dark:block ${className}`} />
+    </>
+  );
+}
+
+export function Logo({ size = "md", href = "/" }: { size?: keyof typeof HEIGHTS; href?: string }) {
+  return (
+    <Link href={href} className="inline-flex shrink-0 items-center rounded-[6px]" aria-label={`${siteConfig.name} home`}>
+      <LogoImage size={size} />
     </Link>
   );
 }
