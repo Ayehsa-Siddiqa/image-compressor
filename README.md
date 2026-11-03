@@ -21,7 +21,9 @@ npm run lint
 4. Create the first admin: `npm run admin:create -- you@example.com "Your Name"` (asks for a password).
 5. Restart `npm run dev`, sign in at `/dashboard/login`, and click **Import the 3 existing posts** to move the current posts into the database. The public blog then shows only published database posts.
 
-Saving in the dashboard updates the public pages straight away (no rebuild). Article bodies use simple Markdown (`##` headings, `-` lists, `**bold**`, `[links](/path)`, and a `:::faq` block); the editor has a preview and a formatting guide. Images can be up to 4 MB.
+Saving in the dashboard updates the public pages straight away (no rebuild). Posts are written in a rich text editor, with an optional FAQ section and per-post SEO settings. Images can be up to 4 MB. Databases created before the rich text editor also need [`supabase/migrations/002_rich_text_and_seo.sql`](supabase/migrations/002_rich_text_and_seo.sql).
+
+**Full step-by-step setup (Supabase, Vercel, domain, SEO, Google Search Console): [docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md).**
 
 ## How compression works
 
@@ -67,4 +69,4 @@ Links shown in the design that have no destination yet are `null` and stay hidde
 - `FEEDBACK_EMAIL`: turns on the "How was your experience?" form, "Give Suggestions" and footer "Feedback". These open the visitor's email app.
 - `rating`: the 4.8/5 (3,480) figure comes from the design. Replace it with real numbers.
 
-Set `NEXT_PUBLIC_SITE_URL` in production so social preview images get absolute URLs.
+Set `NEXT_PUBLIC_SITE_URL` in production (e.g. `https://www.toolve.co`) so canonical links, the sitemap and social previews use the right address.
