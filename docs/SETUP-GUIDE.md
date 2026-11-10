@@ -244,9 +244,36 @@ The only SEO work is for each blog post: when you write it in the dashboard, fil
 
 ---
 
+## Fix: "Run migration 002" error when saving a blog post
+
+**What it means:** your database is missing 3 new columns, so the site can't save the article, FAQ and SEO. This only happens if the database was created **before** the rich text editor and SEO fields were added. You only do this fix **once**.
+
+1. Go to <https://supabase.com> and open your **toolve** project.
+2. In the left menu, click **SQL Editor**.
+3. Click **New query**.
+4. Copy and paste this:
+
+```sql
+alter table blog_posts add column if not exists content_html text;
+alter table blog_posts add column if not exists faq jsonb;
+alter table blog_posts add column if not exists seo jsonb not null default '{}';
+notify pgrst, 'reload schema';
+```
+
+5. Click **Run**. It should say **Success. No rows returned**.
+6. Go back to the dashboard and click **Save** on your post again.
+
+This is the same code as the file `supabase/migrations/002_rich_text_and_seo.sql` in the project.
+
+- Your existing posts and admin accounts **stay safe**. It only adds the new columns.
+- Running it twice is **harmless**.
+- A **brand-new** database made with Step 3 does **not** need this, because `schema.sql` already has these columns.
+
+---
+
 ## If something goes wrong
 
 - **The live site didn't change:** you forgot `git push`.
 - **A new Vercel variable isn't working:** you need to **Redeploy** (see Step 8).
 - **You can't sign in to the dashboard:** run Step 6 again. It also resets the password.
-- **Saving a post shows an error about "migration 002":** in Supabase **SQL Editor**, run the file `supabase/migrations/002_rich_text_and_seo.sql`.
+- **Saving a post shows an error about "migration 002":** in Supabase **SQL Editor**, run the file `supabase/migrations/002_rich_text_and_seo.sql`. Full steps are in the section **Fix: "Run migration 002" error** above.
